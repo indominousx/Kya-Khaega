@@ -8,14 +8,15 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}}) 
 
 # --- Load Data on Start-up ---
-excel_file_name = 'Zomato_Menu_Classified.xlsx' 
+data_file_name = 'Zomato_Menu_Classified.csv' # Use the .csv file 
 
 try:
     script_dir = os.path.dirname(__file__) 
-    file_path = os.path.join(script_dir, excel_file_name)
+    file_path = os.path.join(script_dir, data_file_name)
     
     print(f"Loading data from: {file_path}")
-    df = pd.read_excel(file_path)
+    df = pd.read_csv(file_path) # Use pd.read_csv
+    df.columns = df.columns.str.strip() # FIX: Remove whitespace from column names
     print("Data loaded successfully.")
 
     # --- FIX: Smarter Price Cleaning ---
@@ -46,7 +47,7 @@ try:
     
 except FileNotFoundError:
     print(f"--- FATAL ERROR ---")
-    print(f"The file '{excel_file_name}' was not found in the 'backend' directory.")
+    print(f"The file '{data_file_name}' was not found in the 'backend' directory.")
     df = pd.DataFrame()
 
 
