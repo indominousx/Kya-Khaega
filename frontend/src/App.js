@@ -65,7 +65,7 @@ function App() {
         <Slider 
             range 
             min={0} 
-            max={5000} 
+            max={2000} 
             // FIX: Use 'value' instead of 'defaultValue' for a fully controlled component.
             value={priceRange} 
             onChange={(newRange) => setPriceRange(newRange)} 
