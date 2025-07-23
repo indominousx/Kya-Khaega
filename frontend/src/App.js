@@ -1,5 +1,7 @@
 // File: frontend/src/App.js
-import React, { useState } from 'react';
+
+// FIX: Removed 'import React' as it's not explicitly used and can cause build errors.
+import { useState } from 'react'; 
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import './App.css';
@@ -27,7 +29,7 @@ function App() {
     setRecommendations(null);
 
     try {
-      const response = await fetch('/api/recommend', { // Relative URL is correct
+      const response = await fetch('/api/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -59,7 +61,18 @@ function App() {
       <div className="selection-panel">
         <fieldset><legend>Select Cuisine(s)</legend>{CUISINE_OPTIONS.map(c => (<label key={c}><input type="checkbox" value={c} onChange={()=>handleCheckboxChange(c, 'cuisine')}/>{c}</label>))}</fieldset>
         <fieldset><legend>Select Food Type(s)</legend>{FOOD_TYPE_OPTIONS.map(ft => (<label key={ft}><input type="checkbox" value={ft} onChange={()=>handleCheckboxChange(ft, 'foodType')}/>{ft}</label>))}</fieldset>
-        <fieldset><legend>Price Range</legend><div className="price-slider-container"><div className="price-display">₹{priceRange[0]} - ₹{priceRange[1]}</div><Slider range min={0} max={5000} defaultValue={priceRange} onChange={(nr)=>setPriceRange(nr)} allowCross={false} step={50}/></div></fieldset>
+        <fieldset><legend>Price Range</legend><div className="price-slider-container"><div className="price-display">₹{priceRange[0]} - ₹{priceRange[1]}</div>
+        <Slider 
+            range 
+            min={0} 
+            max={5000} 
+            // FIX: Use 'value' instead of 'defaultValue' for a fully controlled component.
+            value={priceRange} 
+            onChange={(newRange) => setPriceRange(newRange)} 
+            allowCross={false} 
+            step={50}
+        />
+        </div></fieldset>
       </div>
       <button onClick={handleSuggestClick} disabled={isLoading}>{isLoading ? 'Thinking...':'Find Me Food!'}</button>
       <div className="results-panel">
