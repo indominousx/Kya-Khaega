@@ -32,7 +32,7 @@ function App() {
     setRecommendations(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/recommend', {
+      const response = await fetch('/api/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
