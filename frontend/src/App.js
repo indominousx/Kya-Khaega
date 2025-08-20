@@ -29,7 +29,8 @@ function App() {
     setRecommendations(null);
 
     try {
-      const response = await fetch('/api/recommend', {
+  const API_URL = process.env.REACT_APP_API_URL || '';
+  const response = await fetch(`${API_URL}/api/recommend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
