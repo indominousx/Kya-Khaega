@@ -5,8 +5,11 @@ import pandas as pd
 import os
 
 app = Flask(__name__)
-# Allow all origins, which is fine for Vercel deployment
-CORS(app, resources={r"/api/*": {"origins": "*"}}) 
+# Allow all origins for both API routes and health check
+CORS(app, resources={
+    r"/*": {"origins": "*"},
+    r"/api/*": {"origins": "*"}
+}) 
 
 data_file_name = 'Zomato_Menu_Classified_with_Area.csv'
 
@@ -54,6 +57,16 @@ try:
 except Exception as e:
     print(f"--- LOG: FATAL ERROR - An exception occurred during data loading: {e}")
     df = pd.DataFrame() # Ensure df is empty on error
+
+# Health check endpoint
+@app.route('/')
+def health_check():
+    return jsonify({
+        "status": "Backend is running!",
+        "service": "Kya Khaega API",
+        "data_loaded": not df.empty,
+        "total_items": len(df) if not df.empty else 0
+    })
 
 # API Endpoint
 @app.route('/api/recommend', methods=['POST'])
