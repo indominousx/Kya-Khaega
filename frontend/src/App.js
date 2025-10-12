@@ -7,6 +7,7 @@ import 'rc-slider/assets/index.css';
 import './App.css';
 import LoginPage from './LoginPage';
 import { supabase } from './supabaseClient';
+import config from './config';
 
 const CUISINE_OPTIONS = ['Indian (General)', 'North Indian', 'South Indian', 'Chinese', 'Italian', 'Continental', 'Maharashtrian', 'Mughlai', 'Beverages', 'Desserts', 'Other'];
 const FOOD_TYPE_OPTIONS = ['Veg', 'Non-Veg'];
@@ -116,7 +117,7 @@ function App() {
     setRecommendations(null);
 
     try {
-  const API_URL = process.env.REACT_APP_API_URL || '';
+  const API_URL = config.api.baseUrl;
   const response = await fetch(`${API_URL}/api/recommend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

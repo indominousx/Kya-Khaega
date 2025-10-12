@@ -1,6 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
+import config from './config'
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
+const supabaseUrl = config.supabase.url
+const supabaseAnonKey = config.supabase.anonKey
+
+// Validate environment variables
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables')
+}
+
+// Validate URL format
+if (!supabaseUrl.startsWith('https://') && !supabaseUrl.startsWith('http://')) {
+  throw new Error('Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.')
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
