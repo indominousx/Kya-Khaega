@@ -55,13 +55,13 @@ except Exception as e:
     print(f"--- LOG: FATAL ERROR - An exception occurred during data loading: {e}")
     df = pd.DataFrame() # Ensure df is empty on error
 
-# --- API Endpoint (no changes needed here) ---
+# API Endpoint
 @app.route('/api/recommend', methods=['POST'])
 def get_recommendations():
     if df.empty:
         return jsonify({"error": "Server data is empty or not loaded correctly."}), 500
     
-    # ... rest of the function is the same ...
+# frontend se data uthao
     data = request.get_json()
     food_types = data.get('foodTypes', [])
     cuisines = data.get('cuisines', [])
