@@ -12,6 +12,64 @@ import config from './config';
 const CUISINE_OPTIONS = ['Indian (General)', 'North Indian', 'South Indian', 'Chinese', 'Italian', 'Continental', 'Maharashtrian', 'Mughlai', 'Beverages', 'Desserts', 'Other'];
 const FOOD_TYPE_OPTIONS = ['Veg', 'Non-Veg'];
 
+// Pune area mapping with precise coordinates
+const PUNE_AREAS = {
+  'Hinjawadi':     { lat: 18.591684, lng: 73.734782, radius: 0.05 },
+  'Baner':         { lat: 18.559658, lng: 73.779938, radius: 0.03 },
+  'Wakad':         { lat: 18.599348, lng: 73.762495, radius: 0.03 },
+  'Aundh':         { lat: 18.564997, lng: 73.807742, radius: 0.03 },
+  'Shivajinagar':  { lat: 18.530429, lng: 73.847216, radius: 0.02 },
+  'Koregaon Park': { lat: 18.536157, lng: 73.893059, radius: 0.02 },
+  'FC Road':       { lat: 18.519601, lng: 73.855303, radius: 0.02 },
+  'Camp':          { lat: 18.514321, lng: 73.877292, radius: 0.02 },
+  'Kothrud':       { lat: 18.509592, lng: 73.807682, radius: 0.03 },
+  'Karve Nagar':   { lat: 18.480440, lng: 73.826770, radius: 0.02 },
+  'Deccan':        { lat: 18.516726, lng: 73.841941, radius: 0.02 },
+  'Viman Nagar':   { lat: 18.567902, lng: 73.914297, radius: 0.03 },
+  'Kalyani Nagar': { lat: 18.548075, lng: 73.904042, radius: 0.02 },
+  'Hadapsar':      { lat: 18.508944, lng: 73.926021, radius: 0.03 },
+  'Kondhwa':       { lat: 18.463520, lng: 73.892378, radius: 0.03 },
+  'Bibvewadi':     { lat: 18.479291, lng: 73.868566, radius: 0.02 },
+  'Warje':         { lat: 18.491313, lng: 73.807776, radius: 0.02 },
+};
+
+// Function to calculate distance between two coordinates
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in km
+};
+
+// Function to determine user's area based on coordinates
+const getUserArea = (latitude, longitude) => {
+  let closestArea = null;
+  let minDistance = Infinity;
+
+  console.log(`Checking coordinates: ${latitude}, ${longitude}`);
+
+  for (const [areaName, areaData] of Object.entries(PUNE_AREAS)) {
+    const distance = calculateDistance(latitude, longitude, areaData.lat, areaData.lng);
+    // Convert radius from degrees to km (1 degree ≈ 111 km)
+    const radiusKm = areaData.radius * 111;
+    
+    console.log(`${areaName}: ${distance.toFixed(2)}km (radius: ${radiusKm.toFixed(1)}km) ${distance <= radiusKm ? 'MATCH' : 'no'}`);
+    
+    if (distance <= radiusKm && distance < minDistance) {
+      minDistance = distance;
+      closestArea = areaName;
+    }
+  }
+
+  console.log(`Final detected area: ${closestArea} (${minDistance.toFixed(2)}km away)`);
+  return closestArea;
+};
+
 function App() {
   const [user, setUser] = useState(null);
   const [userPreferences, setUserPreferences] = useState(null);
@@ -22,6 +80,75 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [authLoading, setAuthLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState('');
+  const [availableAreas, setAvailableAreas] = useState([]);
+  const [selectedArea, setSelectedArea] = useState('');
+
+  // Get user location on app load
+  useEffect(() => {
+    const getUserLocation = () => {
+      if (navigator.geolocation) {
+        console.log('Requesting geolocation...');
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const coords = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            };
+            console.log('Location captured:', coords);
+            
+            const detectedArea = getUserArea(coords.latitude, coords.longitude);
+            console.log('Detected area:', detectedArea);
+            
+            setUserLocation(coords);
+            if (!detectedArea) {
+              setLocationError('Your location is outside our service areas. Please select your area manually.');
+            }
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            let errorMsg = 'Location access denied. Please allow location access for better recommendations.';
+            if (error.code === 1) {
+              errorMsg = 'Location access denied. Please allow location access and refresh the page.';
+            } else if (error.code === 2) {
+              errorMsg = 'Location unavailable. Please select your area manually.';
+            } else if (error.code === 3) {
+              errorMsg = 'Location request timeout. Please select your area manually.';
+            }
+            setLocationError(errorMsg);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000 // Cache for 5 minutes
+          }
+        );
+      } else {
+        setLocationError('Geolocation is not supported by this browser.');
+      }
+    };
+
+    getUserLocation();
+  }, []);
+
+  // Fetch available areas
+  useEffect(() => {
+    const fetchAreas = async () => {
+      try {
+        const API_URL = config.api.baseUrl;
+        const response = await fetch(`${API_URL}/api/areas`);
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableAreas(data.areas || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch areas:', error);
+      }
+    };
+
+    fetchAreas();
+  }, []);
 
   // Check for existing session on app load
   useEffect(() => {
@@ -117,15 +244,36 @@ function App() {
     setRecommendations(null);
 
     try {
-  const API_URL = config.api.baseUrl;
-  const response = await fetch(`${API_URL}/api/recommend`, {
+      const API_URL = config.api.baseUrl;
+      
+      // Determine user's area if location is available or use manually selected area
+      let userArea = selectedArea;
+      if (!userArea && userLocation) {
+        userArea = getUserArea(userLocation.latitude, userLocation.longitude);
+        console.log('Auto-detected area from coordinates:', userArea);
+      }
+      
+      console.log('Making recommendation request with:', {
+        cuisines: selectedCuisines,
+        foodTypes: selectedFoodTypes,
+        minPrice: priceRange[0],
+        maxPrice: priceRange[1],
+        userArea: userArea,
+        hasLocation: !!userLocation
+      });
+
+      const response = await fetch(`${API_URL}/api/recommend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cuisines: selectedCuisines,
           foodTypes: selectedFoodTypes,
           minPrice: priceRange[0],
-          maxPrice: priceRange[1]
+          maxPrice: priceRange[1],
+          userArea: userArea,
+          userLocation: userLocation,
+          userId: user?.id,
+          userPreferences: userPreferences
         })
       });
 
@@ -134,7 +282,20 @@ function App() {
       }
 
       const data = await response.json();
-      setRecommendations(data);
+      console.log('Received response:', data);
+      
+      // Handle the new response format
+      if (data.recommendations) {
+        setRecommendations(data.recommendations);
+        
+        // Log preference information
+        if (data.preference_source) {
+          console.log(`Recommendations based on ${data.preference_source} preferences:`, data.applied_preferences);
+        }
+      } else {
+        // Handle legacy format for backward compatibility
+        setRecommendations(data);
+      }
 
     } catch (err) {
       setError('Failed to fetch recommendations. Please check the Vercel logs.');
@@ -159,6 +320,17 @@ function App() {
           <div>
             <h1>Kya Khaega?</h1>
             <p>Let us help you decide what to eat in Pune!</p>
+            {userLocation && (
+              <p className="location-status">
+                📍 Recommendations based on your location
+                {getUserArea(userLocation.latitude, userLocation.longitude) && 
+                  ` (${getUserArea(userLocation.latitude, userLocation.longitude)})`
+                }
+              </p>
+            )}
+            {locationError && (
+              <p className="location-error">⚠️ {locationError}</p>
+            )}
           </div>
           <div className="user-info">
             <span>Welcome, {userPreferences?.name || user.email}!</span>
@@ -167,6 +339,46 @@ function App() {
         </div>
       </header>
       <div className="selection-panel">
+        {/* Area Selection */}
+        <fieldset>
+          <legend>Delivery Area</legend>
+          {!userLocation && !selectedArea && (
+            <p className="location-prompt">📍 Allow location access for automatic area detection, or select manually below:</p>
+          )}
+          {/* Debug info - remove in production */}
+          {userLocation && (
+            <div className="debug-info">
+              <small>📍 Coords: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}</small>
+              <button 
+                onClick={() => {
+                  const area = getUserArea(userLocation.latitude, userLocation.longitude);
+                  alert(`Detected area: ${area || 'None detected'}\nCoords: ${userLocation.latitude}, ${userLocation.longitude}`);
+                }}
+                className="debug-btn"
+              >
+                Test Area Detection
+              </button>
+            </div>
+          )}
+          <select 
+            value={selectedArea} 
+            onChange={(e) => setSelectedArea(e.target.value)}
+            className="area-selector"
+          >
+            <option value="">
+              {userLocation 
+                ? (getUserArea(userLocation.latitude, userLocation.longitude) 
+                    ? `Auto-detected: ${getUserArea(userLocation.latitude, userLocation.longitude)}` 
+                    : 'Location detected - Select area manually')
+                : 'Select your area'
+              }
+            </option>
+            {availableAreas.map(area => (
+              <option key={area} value={area}>{area}</option>
+            ))}
+          </select>
+        </fieldset>
+
         <fieldset><legend>Select Cuisine(s)</legend>{CUISINE_OPTIONS.map(c => (<label key={c}><input type="checkbox" value={c} onChange={()=>handleCheckboxChange(c, 'cuisine')}/>{c}</label>))}</fieldset>
         <fieldset><legend>Select Food Type(s)</legend>{FOOD_TYPE_OPTIONS.map(ft => (<label key={ft}><input type="checkbox" value={ft} onChange={()=>handleCheckboxChange(ft, 'foodType')}/>{ft}</label>))}</fieldset>
         <fieldset><legend>Price Range</legend><div className="price-slider-container"><div className="price-display">₹{priceRange[0]} - ₹{priceRange[1]}</div>
@@ -185,7 +397,39 @@ function App() {
       <button onClick={handleSuggestClick} disabled={isLoading}>{isLoading ? 'Thinking...':'Find Me Food!'}</button>
       <div className="results-panel">
         {error && <p className="error-message">{error}</p>}
-        {recommendations && recommendations.length > 0 && (<ul>{recommendations.map((item, index) => (<li key={index}><span className="item-name">{item.Item_Name}</span><span className="restaurant-name">at {item.Restaurant_Name}</span>{item.Price && <span className="price-tag">₹{Math.round(item.Price)}</span>}<span className="tags">{item['Food Type']} | {item.Cuisine}</span></li>))}</ul>)}
+        {recommendations && recommendations.length > 0 && (
+          <div>
+            {(selectedArea || (userLocation && getUserArea(userLocation.latitude, userLocation.longitude))) && (
+              <p className="location-info">
+                📍 Showing results for: {selectedArea || getUserArea(userLocation.latitude, userLocation.longitude)}
+              </p>
+            )}
+            <ul>
+              {recommendations.map((item, index) => {
+                const currentUserArea = selectedArea || (userLocation ? getUserArea(userLocation.latitude, userLocation.longitude) : null);
+                const isExactArea = currentUserArea && item.Area && item.Area.toLowerCase() === currentUserArea.toLowerCase();
+                const isNearbyArea = currentUserArea && item.Area && item.Area.toLowerCase().includes(currentUserArea.toLowerCase());
+                
+                return (
+                  <li key={index} className={isExactArea ? 'exact-area' : (isNearbyArea ? 'nearby-area' : 'distant-area')}>
+                    <span className="item-name">{item.Item_Name}</span>
+                    <span className="restaurant-name">at {item.Restaurant_Name}</span>
+                    {item.Area && (
+                      <span className={`restaurant-area ${isExactArea ? 'exact' : (isNearbyArea ? 'nearby' : 'distant')}`}>
+                        📍 {item.Area}
+                        {isExactArea && <span className="distance-badge exact">In your area</span>}
+                        {!isExactArea && isNearbyArea && <span className="distance-badge nearby">Nearby</span>}
+                        {!isExactArea && !isNearbyArea && <span className="distance-badge distant">Distant</span>}
+                      </span>
+                    )}
+                    {item.Price && <span className="price-tag">₹{Math.round(item.Price)}</span>}
+                    <span className="tags">{item['Food Type']} | {item.Cuisine}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
         {recommendations && recommendations.length === 0 && (<p className="no-results">No results found. Try different filters!</p>)}
       </div>
     </div>

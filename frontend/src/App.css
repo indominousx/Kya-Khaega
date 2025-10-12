@@ -178,6 +178,12 @@ li:hover {
   margin: 4px 0;
 }
 
+.restaurant-area {
+  font-size: 0.9em;
+  color: #666;
+  margin: 2px 0;
+}
+
 .tags {
   font-size: 0.8em;
   color: #fff;
@@ -227,4 +233,119 @@ li:hover {
 .rc-slider-rail {
     background-color: #e0e0e0;
     height: 6px;
+}
+
+.location-status {
+    color: #388e3c;
+    font-size: 0.9em;
+    margin: 8px 0 0 0;
+    font-weight: 500;
+}
+
+.location-error {
+    color: #d32f2f;
+    font-size: 0.9em;
+    margin: 8px 0 0 0;
+    font-weight: 500;
+}
+
+.location-prompt {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.area-selector {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.area-selector:focus {
+    outline: none;
+    border-color: #d32f2f;
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+}
+
+.area-selector:hover {
+    border-color: #bbb;
+}
+
+.location-info {
+    color: #388e3c;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #e8f5e8;
+    border-radius: 6px;
+    border-left: 4px solid #388e3c;
+}
+
+.exact-area {
+    border-left: 4px solid #4caf50 !important;
+    background-color: #f1f8e9 !important;
+}
+
+.nearby-area {
+    border-left: 4px solid #ff9800 !important;
+    background-color: #fff3e0 !important;
+}
+
+.distant-area {
+    border-left: 4px solid #f44336 !important;
+    background-color: #ffebee !important;
+}
+
+.distance-badge {
+    font-size: 0.75em;
+    padding: 3px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+.distance-badge.exact {
+    background-color: #4caf50;
+    color: white;
+}
+
+.distance-badge.nearby {
+    background-color: #ff9800;
+    color: white;
+}
+
+.distance-badge.distant {
+    background-color: #f44336;
+    color: white;
+}
+
+.debug-info {
+    background-color: #f0f0f0;
+    padding: 8px;
+    border-radius: 4px;
+    margin: 10px 0;
+    font-size: 0.9em;
+    border: 1px solid #ddd;
+}
+
+.debug-btn {
+    padding: 4px 8px;
+    font-size: 0.8em;
+    margin-left: 10px;
+    background-color: #666;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: auto;
+}
+
+.debug-btn:hover {
+    background-color: #555;
 }
