@@ -18,7 +18,7 @@ SUPABASE_URL = "https://bxbiafbvprdmcayumxnx.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4YmlhZmJ2cHJkbWNheXVteG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNjQ1MzcsImV4cCI6MjA3NTc0MDUzN30.02_mypsf-AbNXMH0hUUylDTziMyVyUKQbORy1ZXC1KE"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-data_file_name = 'Zomato_Menu_Classified_with_Area.csv'
+data_file_name = 'The_file.csv'
 
 try:
     script_dir = os.path.dirname(__file__) 
@@ -51,6 +51,24 @@ try:
         print(f"--- LOG: Rows after final numeric conversion of Price: {len(df)}")
     else:
         print("--- LOG: WARNING - 'Price' column not found.")
+
+    # --- CLEAN DINING_RATING COLUMN ---
+    if 'Dining_Rating' in df.columns:
+        print("--- LOG: Starting 'Dining_Rating' column cleaning...")
+        # Convert to numeric, coerce errors to NaN
+        df['Dining_Rating'] = pd.to_numeric(df['Dining_Rating'], errors='coerce')
+        print(f"--- LOG: Dining_Rating conversion complete")
+    else:
+        print("--- LOG: WARNING - 'Dining_Rating' column not found.")
+
+    # --- CLEAN VOTES COLUMN ---
+    if 'Votes' in df.columns:
+        print("--- LOG: Starting 'Votes' column cleaning...")
+        # Convert to numeric, coerce errors to NaN
+        df['Votes'] = pd.to_numeric(df['Votes'], errors='coerce')
+        print(f"--- LOG: Votes conversion complete")
+    else:
+        print("--- LOG: WARNING - 'Votes' column not found.")
 
     # --- CLEAN OTHER CRITICAL COLUMNS ---
     # This is another potential point of failure. We will check it too.

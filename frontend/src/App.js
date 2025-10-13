@@ -423,6 +423,12 @@ function App() {
                       </span>
                     )}
                     {item.Price && <span className="price-tag">₹{Math.round(item.Price)}</span>}
+                    {item.Dining_Rating && (
+                      <span className="rating-tag">
+                        ⭐ {item.Dining_Rating}
+                        {item.Votes && <span className="votes">({item.Votes} votes)</span>}
+                      </span>
+                    )}
                     <span className="tags">{item['Food Type']} | {item.Cuisine}</span>
                   </li>
                 );
