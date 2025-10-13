@@ -7,6 +7,10 @@ import json
 import random
 from supabase import create_client, Client
 from ai_service import FoodAIService
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -15,12 +19,20 @@ CORS(app, resources={
 }) 
 
 # Initialize Supabase client
-SUPABASE_URL = "https://bxbiafbvprdmcayumxnx.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4YmlhZmJ2cHJkbWNheXVteG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNjQ1MzcsImV4cCI6MjA3NTc0MDUzN30.02_mypsf-AbNXMH0hUUylDTziMyVyUKQbORy1ZXC1KE"
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Initialize AI Service
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAjE2GUy5_saZHT7N_RUzOkK8jfG67lGiA")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY must be set in environment variables")
+
 ai_service = FoodAIService(GEMINI_API_KEY)
 
 # Load and clean dataset
