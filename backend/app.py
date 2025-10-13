@@ -4,10 +4,10 @@ from flask_cors import CORS
 import pandas as pd
 import os
 import json
+import random
 from supabase import create_client, Client
 
 app = Flask(__name__)
-# Allow all origins for both API routes and health check
 CORS(app, resources={
     r"/*": {"origins": "*"},
     r"/api/*": {"origins": "*"}
@@ -18,380 +18,395 @@ SUPABASE_URL = "https://bxbiafbvprdmcayumxnx.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4YmlhZmJ2cHJkbWNheXVteG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNjQ1MzcsImV4cCI6MjA3NTc0MDUzN30.02_mypsf-AbNXMH0hUUylDTziMyVyUKQbORy1ZXC1KE"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-data_file_name = 'The_file.csv'
-
-try:
-    script_dir = os.path.dirname(__file__) 
-    file_path = os.path.join(script_dir, data_file_name)
-    
-    print(f"--- LOG: Attempting to load data from: {file_path}")
-    df = pd.read_csv(file_path)
-    print(f"--- LOG: CSV file loaded. Initial row count: {len(df)}")
-    print(f"--- LOG: Columns found: {df.columns.tolist()}")
-
-    # --- ADVANCED PRICE CLEANING ---
-    if 'Price' in df.columns:
-        print("--- LOG: Starting 'Price' column cleaning...")
-        # First, drop rows where 'Price' is already empty
-        df.dropna(subset=['Price'], inplace=True)
-        print(f"--- LOG: Rows after dropping empty prices: {len(df)}")
+# Load and clean dataset
+def load_dataset():
+    try:
+        script_dir = os.path.dirname(__file__)
+        file_path = os.path.join(script_dir, 'The_file.csv')
         
-        # Convert to string and use regex to remove everything that isn't a digit or decimal
-        df['Price'] = df['Price'].astype(str).str.replace(r'[^\d.]', '', regex=True)
+        df = pd.read_csv(file_path)
         
-        # After cleaning, some might be empty strings. Replace them with NaN.
-        df.loc[df['Price'] == '', 'Price'] = pd.NA
-        print(f"--- LOG: Rows after replacing empty strings in Price: {len(df)}")
-
-        # Now convert to numeric. Coerce will handle any remaining bad formats.
-        df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
+        # Clean Price column
+        if 'Price' in df.columns:
+            df.dropna(subset=['Price'], inplace=True)
+            df['Price'] = df['Price'].astype(str).str.replace(r'[^\d.]', '', regex=True)
+            df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
+            df.dropna(subset=['Price'], inplace=True)
         
-        # Finally, drop any rows that could not be converted.
-        df.dropna(subset=['Price'], inplace=True)
-        print(f"--- LOG: Rows after final numeric conversion of Price: {len(df)}")
-    else:
-        print("--- LOG: WARNING - 'Price' column not found.")
-
-    # --- CLEAN DINING_RATING COLUMN ---
-    if 'Dining_Rating' in df.columns:
-        print("--- LOG: Starting 'Dining_Rating' column cleaning...")
-        # Convert to numeric, coerce errors to NaN
-        df['Dining_Rating'] = pd.to_numeric(df['Dining_Rating'], errors='coerce')
-        print(f"--- LOG: Dining_Rating conversion complete")
-    else:
-        print("--- LOG: WARNING - 'Dining_Rating' column not found.")
-
-    # --- CLEAN VOTES COLUMN ---
-    if 'Votes' in df.columns:
-        print("--- LOG: Starting 'Votes' column cleaning...")
-        # Convert to numeric, coerce errors to NaN
-        df['Votes'] = pd.to_numeric(df['Votes'], errors='coerce')
-        print(f"--- LOG: Votes conversion complete")
-    else:
-        print("--- LOG: WARNING - 'Votes' column not found.")
-
-    # --- CLEAN OTHER CRITICAL COLUMNS ---
-    # This is another potential point of failure. We will check it too.
-    initial_rows_before_final_clean = len(df)
-    df.dropna(subset=['Item_Name', 'Restaurant_Name', 'Food Type', 'Cuisine'], inplace=True)
-    print(f"--- LOG: Rows after cleaning other critical columns: {len(df)}")
-    print(f"--- LOG: Dropped {initial_rows_before_final_clean - len(df)} rows due to missing critical data.")
-    
-    print(f"--- LOG: FINAL DATA READY with {len(df)} rows.")
+        # Clean numeric columns
+        if 'Dining_Rating' in df.columns:
+            df['Dining_Rating'] = pd.to_numeric(df['Dining_Rating'], errors='coerce')
         
-except Exception as e:
-    print(f"--- LOG: FATAL ERROR - An exception occurred during data loading: {e}")
-    df = pd.DataFrame() # Ensure df is empty on error
+        if 'Votes' in df.columns:
+            df['Votes'] = pd.to_numeric(df['Votes'], errors='coerce')
+        
+        # Clean essential columns
+        df.dropna(subset=['Item_Name', 'Restaurant_Name', 'Food Type', 'Cuisine'], inplace=True)
+        
+        return df
+        
+    except Exception as e:
+        print(f"Error loading dataset: {e}")
+        return pd.DataFrame()
+
+df = load_dataset()
 
 # Health check endpoint
 @app.route('/')
 def health_check():
-    available_areas = []
-    if not df.empty and 'Area' in df.columns:
-        available_areas = sorted(df['Area'].unique().tolist())
-    
     return jsonify({
-        "status": "Backend is running!",
-        "service": "Kya Khaega API",
+        "status": "Kya Khaega API is running!",
+        "service": "Food Recommendation Engine",
         "data_loaded": not df.empty,
-        "total_items": len(df) if not df.empty else 0,
-        "available_areas": available_areas[:20] if available_areas else [],  # Show first 20 areas
-        "total_areas": len(available_areas) if available_areas else 0
+        "total_restaurants": len(df) if not df.empty else 0
     })
 
-# API Endpoint
-@app.route('/api/recommend', methods=['POST'])
-def get_recommendations():
-    if df.empty:
-        return jsonify({"error": "Server data is empty or not loaded correctly."}), 500
-    
-    # Get data from frontend
-    data = request.get_json()
-    food_types = data.get('foodTypes', [])
-    cuisines = data.get('cuisines', [])
-    min_price = data.get('minPrice')
-    max_price = data.get('maxPrice')
-    user_area = data.get('userArea')
-    user_location = data.get('userLocation')
-    userId = data.get('userId', '')
-    userPreferences = data.get('userPreferences', {})
-    
-    print(f"--- LOG: User area detected: {user_area}")
-    print(f"--- LOG: User location: {user_location}")
-    print(f"--- LOG: User ID: {userId}")
-    print(f"--- LOG: User preferences: {userPreferences}")
-    
-    # Fetch user preferences from Supabase if userId is provided
-    db_preferences = {}
-    if userId:
-        try:
-            response = supabase.table('user_preferences').select('*').eq('user_id', userId).execute()
-            if response.data and len(response.data) > 0:
-                db_preferences = response.data[0]
-                print(f"--- LOG: Retrieved DB preferences: {db_preferences}")
-            else:
-                print(f"--- LOG: No preferences found in DB for user: {userId}")
-        except Exception as e:
-            print(f"--- LOG: Error fetching user preferences: {str(e)}")
-    
-    filtered_df = df.copy()
-    
-    # Apply user preferences from database (if available) - these override manual selections
-    if db_preferences:
-        print("--- LOG: Applying user preferences from database")
-        
-        # Apply cuisine preferences from DB
-        if 'cuisine_preferences' in db_preferences and db_preferences['cuisine_preferences']:
-            try:
-                # Parse cuisine preferences if it's a JSON string
-                if isinstance(db_preferences['cuisine_preferences'], str):
-                    db_cuisines = json.loads(db_preferences['cuisine_preferences'])
-                else:
-                    db_cuisines = db_preferences['cuisine_preferences']
-                
-                if isinstance(db_cuisines, list) and len(db_cuisines) > 0:
-                    filtered_df = filtered_df[filtered_df['Cuisine'].isin(db_cuisines)]
-                    print(f"--- LOG: Applied DB cuisine filter: {db_cuisines}, {len(filtered_df)} items remain")
-            except Exception as e:
-                print(f"--- LOG: Error applying DB cuisine preferences: {str(e)}")
-        
-        # Apply food type preference from DB
-        if 'food_type' in db_preferences and db_preferences['food_type']:
-            filtered_df = filtered_df[filtered_df['Food Type'].str.contains(db_preferences['food_type'], case=False, na=False)]
-            print(f"--- LOG: Applied DB food type filter: {db_preferences['food_type']}, {len(filtered_df)} items remain")
-        
-        # Apply daily budget from DB
-        if 'daily_budget' in db_preferences and db_preferences['daily_budget'] and 'Price' in filtered_df.columns:
-            try:
-                db_budget = float(db_preferences['daily_budget'])
-                filtered_df = filtered_df[filtered_df['Price'] <= db_budget]
-                print(f"--- LOG: Applied DB budget filter: ≤{db_budget}, {len(filtered_df)} items remain")
-            except (ValueError, TypeError) as e:
-                print(f"--- LOG: Error applying DB budget preference: {str(e)}")
-    else:
-        print("--- LOG: No DB preferences found, applying manual filters")
-    
-    # Apply manual filters only if no DB preferences were applied
-    if not db_preferences:
-        if food_types: 
-            filtered_df = filtered_df[filtered_df['Food Type'].isin(food_types)]
-            print(f"--- LOG: Applied manual food type filter: {food_types}, {len(filtered_df)} items remain")
-        if cuisines: 
-            filtered_df = filtered_df[filtered_df['Cuisine'].isin(cuisines)]
-            print(f"--- LOG: Applied manual cuisine filter: {cuisines}, {len(filtered_df)} items remain")
-        if 'Price' in filtered_df.columns:
-            if min_price is not None: 
-                filtered_df = filtered_df[filtered_df['Price'] >= float(min_price)]
-                print(f"--- LOG: Applied manual min price filter: ≥{min_price}, {len(filtered_df)} items remain")
-            if max_price is not None: 
-                filtered_df = filtered_df[filtered_df['Price'] <= float(max_price)]
-                print(f"--- LOG: Applied manual max price filter: ≤{max_price}, {len(filtered_df)} items remain")
-    
-    # Apply location-based filtering with strict prioritization
-    if user_area and 'Area' in filtered_df.columns:
-        print(f"--- LOG: Filtering by user area: {user_area}")
-        
-        # First, try exact area match (highest priority)
-        exact_area_filtered = filtered_df[filtered_df['Area'].str.lower() == user_area.lower()]
-        
-        if not exact_area_filtered.empty:
-            print(f"--- LOG: Found {len(exact_area_filtered)} restaurants in exact area: {user_area}")
-            filtered_df = exact_area_filtered
-        else:
-            # Second, try partial match (e.g., "Kondhwa Budruk" matches "Kondhwa")
-            partial_match = filtered_df[filtered_df['Area'].str.contains(user_area, case=False, na=False)]
-            
-            if not partial_match.empty:
-                print(f"--- LOG: Found {len(partial_match)} restaurants with partial area match for: {user_area}")
-                filtered_df = partial_match
-            else:
-                # Last resort: look for very close nearby areas only
-                print(f"--- LOG: No direct matches found in {user_area}, checking immediate nearby areas")
-                nearby_areas = get_immediate_nearby_areas(user_area)  # More restrictive function
-                if nearby_areas:
-                    # Use exact matching for nearby areas to avoid distant matches
-                    nearby_pattern = '^(' + '|'.join([area.replace('(', r'\(').replace(')', r'\)') for area in nearby_areas]) + ')$'
-                    nearby_filtered = filtered_df[filtered_df['Area'].str.match(nearby_pattern, case=False, na=False)]
-                    if not nearby_filtered.empty:
-                        print(f"--- LOG: Found {len(nearby_filtered)} restaurants in immediate nearby areas: {nearby_areas}")
-                        filtered_df = nearby_filtered
-                    else:
-                        print(f"--- LOG: No restaurants found even in nearby areas. Showing limited results from all areas.")
-                        # If still nothing, return a very small sample from all areas with distance warning
-                        filtered_df = filtered_df.head(3)  # Only 3 results to indicate limited options
-    
-    if filtered_df.empty: 
-        print("--- LOG: No restaurants found after filtering")
-        return jsonify([])
-    
-    # Completely rewritten logic: GUARANTEE exactly 5 results
-    target_count = 5
-    
-    if len(filtered_df) < target_count:
-        # If less than 5 available total, return all
-        recommendations = filtered_df
-        print(f"--- LOG: Only {len(filtered_df)} items available, returning all")
-    else:
-        # We have enough data, now prioritize by area
-        if user_area and 'Area' in filtered_df.columns:
-            user_area_items = filtered_df[filtered_df['Area'].str.lower() == user_area.lower()]
-            non_user_area_items = filtered_df[filtered_df['Area'].str.lower() != user_area.lower()]
-            
-            result_items = []
-            
-            # Step 1: Add up to 4 from user's area (or all if less than 4)
-            if len(user_area_items) > 0:
-                user_count = min(len(user_area_items), 4)
-                user_sample = user_area_items.sample(n=user_count, random_state=None)
-                result_items.append(user_sample)
-                print(f"--- LOG: Added {user_count} items from {user_area}")
-            
-            # Step 2: Fill remaining slots from other areas
-            current_count = sum(len(df) for df in result_items)
-            remaining = target_count - current_count
-            
-            if remaining > 0 and len(non_user_area_items) > 0:
-                other_sample = non_user_area_items.sample(n=remaining, random_state=None)
-                result_items.append(other_sample)
-                print(f"--- LOG: Added {remaining} items from other areas")
-            
-            # Combine all results
-            if result_items:
-                recommendations = pd.concat(result_items, ignore_index=True)
-            else:
-                # Fallback: just sample 5 from anywhere
-                recommendations = filtered_df.sample(n=target_count, random_state=None)
-        else:
-            # No area specified, just sample 5
-            recommendations = filtered_df.sample(n=target_count, random_state=None)
-            print(f"--- LOG: No area specified, sampled {target_count} items")
-    
-    print(f"--- LOG: Final recommendations shape: {recommendations.shape}")
-    print(f"--- LOG: Final recommendations length: {len(recommendations)}")
-    
-    # Convert to dict and check length
-    result_dict = recommendations.to_dict(orient='records')
-    print(f"--- LOG: Dict conversion result length: {len(result_dict)}")
-    
-    # Log first few items for debugging
-    for i, item in enumerate(result_dict[:3]):
-        print(f"--- LOG: Item {i+1}: {item.get('Item_Name', 'Unknown')} from {item.get('Area', 'Unknown')}")
-    
-    # Add preference source information to response
-    preference_source = "database" if db_preferences else "manual"
-    
-    response_data = {
-        'recommendations': result_dict,
-        'preference_source': preference_source,
-        'applied_preferences': db_preferences if db_preferences else {
-            'cuisines': cuisines,
-            'food_types': food_types,
-            'min_price': min_price,
-            'max_price': max_price
-        },
-        'total_found': len(result_dict)
-    }
-    
-    print(f"--- LOG: Response includes preference source: {preference_source}")
-    
-    return jsonify(response_data)
-
-def get_immediate_nearby_areas(user_area):
-    """Get only the most immediate nearby areas (within 2-3 km radius)"""
-    # More restrictive mapping - only immediate neighbors
-    immediate_area_mapping = {
-        'Hinjawadi': ['Wakad', 'Baner'],
-        'Baner': ['Hinjawadi', 'Wakad', 'Balewadi'],
-        'Wakad': ['Hinjawadi', 'Baner'],
-        'Aundh': ['Baner', 'Shivajinagar'],
-        'Shivajinagar': ['Aundh', 'Deccan'],
-        'Koregaon Park': ['Viman Nagar'],
-        'Viman Nagar': ['Koregaon Park', 'Kalyani Nagar'],
-        'Kalyani Nagar': ['Viman Nagar'],
-        'Hadapsar': ['Kondhwa'],
-        'Kondhwa': ['Hadapsar', 'Bibvewadi'],
-        'Bibvewadi': ['Kondhwa'],
-        'Kothrud': ['Karve Nagar', 'Deccan'],
-        'Deccan': ['Shivajinagar', 'Kothrud'],
-        'FC Road': ['Deccan'],
-        'Camp': ['FC Road']
-    }
-    
-    return immediate_area_mapping.get(user_area, [])
-
-def get_nearby_areas(user_area):
-    """Get nearby areas for a given area in Pune (legacy function - more permissive)"""
-    area_mapping = {
-        'Hinjawadi': ['Wakad', 'Baner', 'Aundh'],
-        'Baner': ['Hinjawadi', 'Wakad', 'Aundh', 'Balewadi'],
-        'Wakad': ['Hinjawadi', 'Baner', 'Aundh'],
-        'Aundh': ['Baner', 'Wakad', 'Shivajinagar'],
-        'Shivajinagar': ['Aundh', 'Deccan', 'FC Road', 'Koregaon Park'],
-        'Koregaon Park': ['Shivajinagar', 'Viman Nagar', 'Kalyani Nagar'],
-        'Viman Nagar': ['Koregaon Park', 'Kalyani Nagar', 'Hadapsar'],
-        'Kalyani Nagar': ['Koregaon Park', 'Viman Nagar', 'Hadapsar'],
-        'Hadapsar': ['Viman Nagar', 'Kalyani Nagar', 'Kondhwa'],
-        'Kondhwa': ['Hadapsar', 'Bibvewadi'],
-        'Kothrud': ['Karve Nagar', 'Warje', 'Deccan'],
-        'Deccan': ['Shivajinagar', 'FC Road', 'Kothrud'],
-        'FC Road': ['Shivajinagar', 'Deccan', 'Camp'],
-        'Camp': ['FC Road', 'Kothrud']
-    }
-    
-    return area_mapping.get(user_area, [])
-
-# Get available areas endpoint
+# Areas endpoint for dropdown population
 @app.route('/api/areas', methods=['GET'])
 def get_areas():
+    """Get list of all available areas from the dataset"""
     if df.empty:
-        return jsonify({"error": "Server data is empty or not loaded correctly."}), 500
+        return jsonify({"error": "Restaurant data not available"}), 500
     
-    if 'Area' in df.columns:
-        areas = sorted(df['Area'].unique().tolist())
-        return jsonify({
-            "areas": areas,
-            "total_areas": len(areas)
-        })
-    else:
-        return jsonify({
-            "areas": [],
-            "total_areas": 0,
-            "error": "Area column not found in data"
-        })
-
-# Debug endpoint to test the logic
-@app.route('/api/debug', methods=['POST'])
-def debug_recommendations():
-    data = request.get_json()
-    user_area = data.get('userArea', '')
-    
-    # Test the exact same logic with debug output
-    result = {
-        'total_data': len(df),
-        'user_area': user_area,
-        'message': 'Debug test'
-    }
-    
-    if user_area and 'Area' in df.columns:
-        user_items = df[df['Area'].str.lower() == user_area.lower()]
-        other_items = df[df['Area'].str.lower() != user_area.lower()]
-        result['user_area_count'] = len(user_items)
-        result['other_areas_count'] = len(other_items)
-        
-        # Simple test: try to get 5 items
-        if len(user_items) >= 4:
-            sample_4 = user_items.sample(n=4)
-            sample_1 = other_items.sample(n=1) if len(other_items) > 0 else pd.DataFrame()
+    try:
+        # Get unique areas from the dataset
+        if 'Area' in df.columns:
+            areas = sorted(df['Area'].dropna().unique().tolist())
+            return jsonify({
+                "areas": areas,
+                "total_areas": len(areas),
+                "status": "success"
+            })
+        else:
+            return jsonify({
+                "areas": [],
+                "total_areas": 0,
+                "status": "no_area_column"
+            })
             
-            if not sample_1.empty:
-                combined = pd.concat([sample_4, sample_1], ignore_index=True)
-                result['final_count'] = len(combined)
-                result['items'] = combined[['Item_Name', 'Area']].to_dict('records')
-            else:
-                result['final_count'] = len(sample_4)
-                result['items'] = sample_4[['Item_Name', 'Area']].to_dict('records')
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch areas: {str(e)}"}), 500
+
+# Cuisines endpoint for dropdown population
+@app.route('/api/cuisines', methods=['GET'])
+def get_cuisines():
+    """Get list of all available cuisines from the dataset"""
+    if df.empty:
+        return jsonify({"error": "Restaurant data not available"}), 500
+    
+    try:
+        # Get unique cuisines from the dataset
+        if 'Cuisine' in df.columns:
+            cuisines = sorted(df['Cuisine'].dropna().unique().tolist())
+            return jsonify({
+                "cuisines": cuisines,
+                "total_cuisines": len(cuisines),
+                "status": "success"
+            })
+        else:
+            return jsonify({
+                "cuisines": [],
+                "total_cuisines": 0,
+                "status": "no_cuisine_column"
+            })
+            
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch cuisines: {str(e)}"}), 500
+
+# Food types endpoint
+@app.route('/api/food-types', methods=['GET'])
+def get_food_types():
+    """Get list of all available food types from the dataset"""
+    if df.empty:
+        return jsonify({"error": "Restaurant data not available"}), 500
+    
+    try:
+        # Get unique food types from the dataset
+        if 'Food Type' in df.columns:
+            food_types = sorted(df['Food Type'].dropna().unique().tolist())
+            return jsonify({
+                "food_types": food_types,
+                "total_food_types": len(food_types),
+                "status": "success"
+            })
+        else:
+            return jsonify({
+                "food_types": [],
+                "total_food_types": 0,
+                "status": "no_food_type_column"
+            })
+            
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch food types: {str(e)}"}), 500
+
+# Demographics-based Recommendation Engine
+def get_user_demographics(userId):
+    """Fetch user preferences and demographics from Supabase"""
+    try:
+        if not userId:
+            return {}
         
-    return jsonify(result)
+        response = supabase.table('user_preferences').select('*').eq('user_id', userId).execute()
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        return {}
+    except Exception as e:
+        print(f"Error fetching user demographics: {e}")
+        return {}
+
+def apply_demographic_filters(df, demographics, user_area=None):
+    """Apply flexible demographic-based filters with variety preservation"""
+    base_df = df.copy()
+    
+    print(f"DEBUG: apply_demographic_filters called with user_area: '{user_area}'")
+    
+    # Always apply location filter first (most important)
+    if user_area and 'Area' in base_df.columns:
+        print(f"DEBUG: Filtering by area '{user_area}'")
+        area_match = base_df[base_df['Area'].str.lower() == user_area.lower()]
+        print(f"DEBUG: Exact area matches: {len(area_match)}")
+        if not area_match.empty:
+            base_df = area_match
+            print(f"DEBUG: Using exact area match, filtered to {len(base_df)} restaurants")
+        else:
+            partial_match = base_df[base_df['Area'].str.contains(user_area, case=False, na=False)]
+            print(f"DEBUG: Partial area matches: {len(partial_match)}")
+            if not partial_match.empty:
+                base_df = partial_match
+                print(f"DEBUG: Using partial area match, filtered to {len(base_df)} restaurants")
+            else:
+                print(f"DEBUG: No area matches found for '{user_area}', keeping all areas")
+    else:
+        print(f"DEBUG: No area filtering applied (user_area: '{user_area}', has Area column: {'Area' in base_df.columns})")
+    
+    # Always apply budget constraint (hard limit)
+    if 'daily_budget' in demographics and demographics['daily_budget']:
+        try:
+            budget = float(demographics['daily_budget'])
+            base_df = base_df[base_df['Price'] <= budget]
+        except (ValueError, TypeError):
+            pass
+    
+    print(f"After location and budget filters: {len(base_df)} restaurants")
+    
+    # Now create multiple pools for variety
+    pools = []
+    
+    # Pool 1: Preferred cuisine + food type (most relevant)
+    preferred_pool = base_df.copy()
+    if 'cuisine_preferences' in demographics and demographics['cuisine_preferences']:
+        try:
+            cuisine_prefs = demographics['cuisine_preferences']
+            if isinstance(cuisine_prefs, str):
+                cuisine_prefs = json.loads(cuisine_prefs)
+            if isinstance(cuisine_prefs, list) and len(cuisine_prefs) > 0:
+                cuisine_match = preferred_pool[preferred_pool['Cuisine'].isin(cuisine_prefs)]
+                if not cuisine_match.empty:
+                    preferred_pool = cuisine_match
+        except Exception:
+            pass
+    
+    if 'food_type' in demographics and demographics['food_type']:
+        food_type_match = preferred_pool[
+            preferred_pool['Food Type'].str.contains(demographics['food_type'], case=False, na=False)
+        ]
+        if not food_type_match.empty:
+            preferred_pool = food_type_match
+    
+    if not preferred_pool.empty:
+        pools.append(('preferred', preferred_pool))
+    
+    # Pool 2: Only cuisine preferences (medium relevance)
+    if 'cuisine_preferences' in demographics and demographics['cuisine_preferences']:
+        try:
+            cuisine_prefs = demographics['cuisine_preferences']
+            if isinstance(cuisine_prefs, str):
+                cuisine_prefs = json.loads(cuisine_prefs)
+            if isinstance(cuisine_prefs, list) and len(cuisine_prefs) > 0:
+                cuisine_only_pool = base_df[base_df['Cuisine'].isin(cuisine_prefs)]
+                if not cuisine_only_pool.empty:
+                    pools.append(('cuisine_only', cuisine_only_pool))
+        except Exception:
+            pass
+    
+    # Pool 3: Only food type (basic relevance)
+    if 'food_type' in demographics and demographics['food_type']:
+        food_type_only_pool = base_df[
+            base_df['Food Type'].str.contains(demographics['food_type'], case=False, na=False)
+        ]
+        if not food_type_only_pool.empty:
+            pools.append(('food_type_only', food_type_only_pool))
+    
+    # Pool 4: All restaurants in area (variety/exploration)
+    if not base_df.empty:
+        pools.append(('variety', base_df))
+    
+    print(f"Created {len(pools)} recommendation pools")
+    
+    # Combine pools with weights
+    if pools:
+        # Return the most relevant pool that has enough variety
+        return pools[0][1]  # Start with most preferred pool
+    
+    return df  # Fallback to all restaurants
+
+def get_five_different_restaurants(filtered_df, count=5):
+    """Get exactly 5 dishes from 5 different restaurants based on user preferences"""
+    if filtered_df.empty:
+        return []
+    
+    # Create a scoring system
+    scored_df = filtered_df.copy()
+    scored_df['rating_score'] = scored_df['Dining_Rating'].fillna(3.0)
+    scored_df['votes_score'] = scored_df['Votes'].fillna(1)
+    
+    # Normalize votes
+    max_votes = scored_df['votes_score'].max()
+    if max_votes > 0:
+        scored_df['votes_normalized'] = (scored_df['votes_score'] / max_votes) * 2
+    else:
+        scored_df['votes_normalized'] = 1
+    
+    # Base recommendation score: Rating + Votes + randomness
+    scored_df['recommendation_score'] = (
+        scored_df['rating_score'] + 
+        scored_df['votes_normalized'] + 
+        scored_df.apply(lambda x: random.uniform(0, 0.5), axis=1)
+    )
+    
+    recommendations = []
+    used_restaurants = set()
+    
+    # Group by restaurant and get the best item from each restaurant
+    restaurant_groups = scored_df.groupby('Restaurant_Name')
+    
+    # Create a list of best item from each restaurant
+    restaurant_candidates = []
+    for restaurant_name, group in restaurant_groups:
+        best_item_in_restaurant = group.loc[group['recommendation_score'].idxmax()]
+        restaurant_candidates.append(best_item_in_restaurant)
+    
+    # Convert to DataFrame for easier handling
+    candidates_df = pd.DataFrame(restaurant_candidates)
+    
+    # Sort by recommendation score and take top 5 restaurants
+    top_restaurants = candidates_df.nlargest(count, 'recommendation_score')
+    
+    # If we don't have 5 restaurants, fill remaining with best items from any restaurant
+    if len(top_restaurants) < count:
+        remaining_needed = count - len(top_restaurants)
+        used_restaurant_names = set(top_restaurants['Restaurant_Name'].values)
+        
+        # Get remaining items not from already selected restaurants
+        remaining_items = scored_df[~scored_df['Restaurant_Name'].isin(used_restaurant_names)]
+        additional_items = remaining_items.nlargest(remaining_needed, 'recommendation_score')
+        
+        # Combine
+        if not additional_items.empty:
+            top_restaurants = pd.concat([top_restaurants, additional_items])
+    
+    # Convert to recommendation format
+    for _, item in top_restaurants.iterrows():
+        recommendations.append({
+            'name': str(item.get('Item_Name', 'Unknown')),
+            'restaurant': str(item.get('Restaurant_Name', 'Unknown')),
+            'cuisine': str(item.get('Cuisine', 'Not specified')),
+            'food_type': str(item.get('Food Type', 'Not specified')),
+            'area': str(item.get('Area', 'Not specified')),
+            'price': float(item.get('Price', 0)) if pd.notna(item.get('Price')) else 0.0,
+            'rating': float(item.get('Dining_Rating', 0)) if pd.notna(item.get('Dining_Rating')) else 0.0,
+            'votes': int(item.get('Votes', 0)) if pd.notna(item.get('Votes')) else 0,
+            'score': round(float(item.get('recommendation_score', 0)), 2)
+        })
+        
+        print(f"Selected: {item['Item_Name']} from {item['Restaurant_Name']} ({item['Cuisine']})")
+    
+    print(f"Final: {len(recommendations)} dishes from {len(set(r['restaurant'] for r in recommendations))} different restaurants")
+    return recommendations
+
+@app.route('/api/recommend', methods=['POST'])
+def get_recommendations():
+    """Main recommendation endpoint - prioritizes current selections over stored preferences"""
+    if df.empty:
+        return jsonify({"error": "Restaurant data not available"}), 500
+    
+    try:
+        data = request.get_json()
+        userId = data.get('userId', '')
+        user_area = data.get('userArea', '')
+        
+        # Get current user selections from request
+        current_cuisines = data.get('cuisines', [])
+        current_food_types = data.get('foodTypes', [])
+        current_min_price = data.get('minPrice')
+        current_max_price = data.get('maxPrice')
+        
+        print(f"Current selections - Cuisines: {current_cuisines}, Food Types: {current_food_types}")
+        
+        # Get stored preferences as fallback
+        stored_demographics = get_user_demographics(userId)
+        print(f"Stored demographics: {stored_demographics}")
+        
+        # Create effective preferences (current selections override stored ones)
+        effective_preferences = {}
+        
+        # Use current selections if provided, otherwise fall back to stored preferences
+        if current_cuisines:
+            effective_preferences['cuisine_preferences'] = current_cuisines
+        elif stored_demographics.get('cuisine_preferences'):
+            effective_preferences['cuisine_preferences'] = stored_demographics['cuisine_preferences']
+        
+        if current_food_types:
+            effective_preferences['food_type'] = current_food_types[0] if current_food_types else None
+        elif stored_demographics.get('food_type'):
+            effective_preferences['food_type'] = stored_demographics['food_type']
+        
+        # For budget, use current selection or stored daily budget
+        if current_max_price is not None:
+            effective_preferences['daily_budget'] = current_max_price
+        elif stored_demographics.get('daily_budget'):
+            effective_preferences['daily_budget'] = stored_demographics['daily_budget']
+        
+        print(f"Effective preferences: {effective_preferences}")
+        
+        # Apply filtering with effective preferences
+        filtered_restaurants = apply_demographic_filters(df, effective_preferences, user_area)
+        print(f"Filtered to {len(filtered_restaurants)} restaurants")
+        
+        # Get exactly 5 recommendations from 5 different restaurants
+        recommendations = get_five_different_restaurants(filtered_restaurants, 5)
+        print(f"Generated {len(recommendations)} recommendations from {len(set(r['restaurant'] for r in recommendations))} different restaurants")
+        
+        # Response with analytics
+        response_data = {
+            'recommendations': recommendations,
+            'total_found': len(recommendations),
+            'user_demographics': {
+                'has_preferences': bool(stored_demographics),
+                'current_selections': {
+                    'cuisines': current_cuisines,
+                    'food_types': current_food_types,
+                    'max_price': current_max_price
+                },
+                'stored_preferences': {
+                    'cuisine_preferences': stored_demographics.get('cuisine_preferences', []) if stored_demographics else [],
+                    'food_type': stored_demographics.get('food_type', '') if stored_demographics else '',
+                    'daily_budget': stored_demographics.get('daily_budget', 0) if stored_demographics else 0
+                },
+                'effective_preferences': effective_preferences,
+                'location': user_area
+            },
+            'filtering_stats': {
+                'total_restaurants': len(df),
+                'after_filtering': len(filtered_restaurants),
+                'recommendation_method': 'current_selection_priority'
+            }
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        return jsonify({"error": f"Recommendation engine error: {str(e)}"}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))

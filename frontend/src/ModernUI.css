@@ -1,0 +1,432 @@
+/* Modern UI Styles */
+
+.modern-container {
+  padding: 30px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Header Styles */
+.modern-header {
+  text-align: center;
+  margin-bottom: 30px;
+  color: white;
+}
+
+.app-icon {
+  font-size: 48px;
+  background: #ff6b35;
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+}
+
+.app-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.app-subtitle {
+  font-size: 16px;
+  opacity: 0.9;
+  margin: 10px 0 0 0;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.4;
+}
+
+/* Search Section */
+.search-section {
+  margin-bottom: 30px;
+}
+
+.search-container {
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 25px;
+  background: white;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  outline: none;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  box-shadow: 0 6px 30px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.search-input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+/* Section Styles */
+.section {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: #333;
+}
+
+/* Cuisine Grid */
+.cuisine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 15px;
+}
+
+.cuisine-card {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 20px 15px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 3px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.cuisine-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.cuisine-card.selected {
+  border-color: var(--cuisine-color);
+  background: linear-gradient(135deg, var(--cuisine-color), rgba(255,255,255,0.9));
+  color: white;
+}
+
+.cuisine-card.selected .cuisine-name {
+  color: white;
+  font-weight: 600;
+}
+
+.cuisine-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.cuisine-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+  line-height: 1.2;
+}
+
+/* Budget Section */
+.budget-container {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.budget-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.currency-symbol {
+  background: #28a745;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.budget-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.budget-range {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.budget-value {
+  background: white;
+  padding: 12px 16px;
+  border-radius: 25px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  border: 2px solid #e9ecef;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.budget-value:hover {
+  border-color: #28a745;
+  color: #28a745;
+  transform: translateY(-1px);
+}
+
+.budget-value.selected {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border-color: #28a745;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.user-budget-info {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.apply-budget-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.apply-budget-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+}
+
+/* Areas Grid */
+.areas-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.area-chip {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  padding: 10px 16px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.area-chip:hover {
+  border-color: #6c757d;
+  color: #495057;
+  transform: translateY(-1px);
+}
+
+.area-chip.selected {
+  background: linear-gradient(135deg, #6c757d, #495057);
+  border-color: #6c757d;
+  color: white;
+}
+
+/* Interactive Info Section */
+.interactive-info {
+  margin: 30px 0;
+}
+
+.info-card {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.info-icon {
+  font-size: 32px;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1) rotate(5deg); }
+  50% { transform: scale(1) rotate(0deg); }
+  75% { transform: scale(1.1) rotate(-5deg); }
+}
+
+.info-content h3 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.info-content p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 15px 25px;
+  color: white;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* User Section */
+.user-section {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: white;
+  margin-top: 20px;
+}
+
+.user-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  border: 2px solid rgba(255,255,255,0.3);
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.user-preferences {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modern-container {
+    padding: 15px;
+  }
+  
+  .cuisine-grid {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+  }
+  
+  .cuisine-card {
+    padding: 15px 10px;
+  }
+  
+  .cuisine-icon {
+    font-size: 24px;
+  }
+  
+  .cuisine-name {
+    font-size: 11px;
+  }
+  
+  .app-title {
+    font-size: 28px;
+  }
+  
+  .app-subtitle {
+    font-size: 14px;
+  }
+  
+  .budget-range {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .areas-grid {
+    flex-direction: column;
+  }
+  
+  .area-chip {
+    justify-content: center;
+  }
+  
+  .budget-range {
+    grid-template-columns: 1fr;
+  }
+}

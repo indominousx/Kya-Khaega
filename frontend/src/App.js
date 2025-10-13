@@ -6,6 +6,7 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import './App.css';
 import LoginPage from './LoginPage';
+import ModernUI from './ModernUI';
 import { supabase } from './supabaseClient';
 import config from './config';
 
@@ -84,6 +85,7 @@ function App() {
   const [locationError, setLocationError] = useState('');
   const [availableAreas, setAvailableAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState('');
+  const [useModernUI, setUseModernUI] = useState(true); // Toggle for new UI
 
   // Get user location on app load
   useEffect(() => {
@@ -238,7 +240,7 @@ function App() {
     else setSelectedFoodTypes(updater);
   };
 
-  const handleSuggestClick = async () => {
+  const makeRecommendationRequest = async (cuisines, foodTypes, budgetRange, userArea) => {
     setIsLoading(true);
     setError('');
     setRecommendations(null);
@@ -246,35 +248,32 @@ function App() {
     try {
       const API_URL = config.api.baseUrl;
       
-      // Determine user's area if location is available or use manually selected area
-      let userArea = selectedArea;
-      if (!userArea && userLocation) {
-        userArea = getUserArea(userLocation.latitude, userLocation.longitude);
-        console.log('Auto-detected area from coordinates:', userArea);
+      // Use provided userArea or auto-detect from location
+      let finalUserArea = userArea;
+      if (!finalUserArea && userLocation) {
+        finalUserArea = getUserArea(userLocation.latitude, userLocation.longitude);
+        console.log('Auto-detected area from coordinates:', finalUserArea);
       }
       
-      console.log('Making recommendation request with:', {
-        cuisines: selectedCuisines,
-        foodTypes: selectedFoodTypes,
-        minPrice: priceRange[0],
-        maxPrice: priceRange[1],
-        userArea: userArea,
-        hasLocation: !!userLocation
-      });
+      const requestData = {
+        cuisines,
+        foodTypes,
+        minPrice: budgetRange ? budgetRange[0] : priceRange[0],
+        maxPrice: budgetRange ? budgetRange[1] : priceRange[1],
+        userArea: finalUserArea,
+        userLocation: userLocation,
+        userId: user?.id,
+        userPreferences: userPreferences
+      };
 
+      console.log('=== FRONTEND API REQUEST ===');
+      console.log('Final userArea being sent:', finalUserArea);
+      console.log('Complete request data:', requestData);
+      
       const response = await fetch(`${API_URL}/api/recommend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cuisines: selectedCuisines,
-          foodTypes: selectedFoodTypes,
-          minPrice: priceRange[0],
-          maxPrice: priceRange[1],
-          userArea: userArea,
-          userLocation: userLocation,
-          userId: user?.id,
-          userPreferences: userPreferences
-        })
+        body: JSON.stringify(requestData)
       });
 
       if (!response.ok) {
@@ -305,6 +304,43 @@ function App() {
     }
   };
 
+  const handleSuggestClick = async () => {
+    // Determine user's area if location is available or use manually selected area
+    let userArea = selectedArea;
+    if (!userArea && userLocation) {
+      userArea = getUserArea(userLocation.latitude, userLocation.longitude);
+    }
+    
+    await makeRecommendationRequest(selectedCuisines, selectedFoodTypes, priceRange, userArea);
+  };
+
+  // Handler for ModernUI component
+  const handleModernUIRecommendations = async (params) => {
+    const { searchQuery, cuisines, budgetRange, selectedArea: area, userBudget } = params;
+    
+    console.log('handleModernUIRecommendations called with:', {
+      area,
+      cuisines,
+      budgetRange,
+      userBudget
+    });
+    
+    // Update state with modern UI selections
+    setSelectedCuisines(cuisines);
+    setSelectedArea(area);
+    if (budgetRange) {
+      setPriceRange([budgetRange[0], budgetRange[1]]);
+    }
+    
+    // Call the suggestion logic with current values (not state that might be stale)
+    // Use food type from user preferences as fallback if not explicitly set
+    const effectiveFoodTypes = selectedFoodTypes.length > 0 ? selectedFoodTypes : 
+                               (userPreferences?.food_type ? [userPreferences.food_type] : ['Veg']);
+    
+    console.log('Using effective food types:', effectiveFoodTypes);
+    await makeRecommendationRequest(cuisines, effectiveFoodTypes, budgetRange, area);
+  };
+
   if (authLoading) {
     return <div className="loading">Loading...</div>;
   }
@@ -313,8 +349,152 @@ function App() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
+  // Render Modern UI
+  if (useModernUI) {
+    return (
+      <div className="modern-layout">
+        {/* Toggle Button */}
+        <div style={{position: 'absolute', top: '20px', right: '20px', zIndex: 1000}}>
+          <button 
+            onClick={() => setUseModernUI(false)}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              backdropFilter: 'blur(10px)'
+            }}
+          >
+            Switch to Classic UI
+          </button>
+          <button 
+            onClick={handleLogout}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              backdropFilter: 'blur(10px)',
+              marginLeft: '10px'
+            }}
+          >
+            Logout
+          </button>
+        </div>
+        
+        <div className="main-content">
+          {/* Left Panel - User Input */}
+          <div className="left-panel">
+            <ModernUI 
+              userPreferences={userPreferences}
+              onGetRecommendations={handleModernUIRecommendations}
+              isLoading={isLoading}
+              user={user}
+              selectedArea={selectedArea}
+              selectedCuisines={selectedCuisines}
+              selectedFoodTypes={selectedFoodTypes}
+              priceRange={priceRange}
+            />
+          </div>
+          
+          {/* Right Panel - Recommendations */}
+          <div className="right-panel">
+            {recommendations ? (
+              <div className="recommendations-container">
+                <div className="recommendations-header">
+                  <h2>🍽️ Recommendations for You</h2>
+                  <p>Based on your preferences • {recommendations.length} suggestions</p>
+                </div>
+                <div className="recommendations-list">
+                  {recommendations.map((item, index) => (
+                    <div key={index} className="recommendation-card">
+                      <div className="card-header">
+                        <h3>{item.Item_Name || item.name}</h3>
+                        <div className="price-badge">₹{item.Price || item.price}</div>
+                      </div>
+                      <div className="restaurant-info">
+                        <span className="restaurant-name">{item.Restaurant_Name || item.restaurant}</span>
+                        <span className="area-info">📍 {item.Area || item.area}</span>
+                      </div>
+                      <div className="card-footer">
+                        {(item.Dining_Rating || item.rating) && (
+                          <div className="rating-info">
+                            <span className="rating">⭐ {item.Dining_Rating || item.rating}</span>
+                            {item.Votes && (
+                              <span className="votes">({item.Votes} votes)</span>
+                            )}
+                          </div>
+                        )}
+                        <div className="cuisine-tag">
+                          {item.Cuisine || item.cuisine} • {item['Food Type'] || item.food_type}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="no-recommendations">
+                <div className="placeholder-content">
+                  <div className="placeholder-icon">🍽️</div>
+                  <h3>Select Your Preferences</h3>
+                  <p>Choose your favorite cuisines, budget range, or area to get personalized food recommendations.</p>
+                  <div className="placeholder-features">
+                    <div className="feature-item">
+                      <span className="feature-icon">🍛</span>
+                      <span>Multiple Cuisines</span>
+                    </div>
+                    <div className="feature-item">
+                      <span className="feature-icon">💰</span>
+                      <span>Budget Friendly</span>
+                    </div>
+                    <div className="feature-item">
+                      <span className="feature-icon">📍</span>
+                      <span>Location Based</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {error && (
+              <div className="error-container">
+                <div className="error-message">
+                  <span className="error-icon">⚠️</span>
+                  {error}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Classic UI
   return (
     <div className="container">
+      {/* Toggle Button */}
+      <div style={{position: 'absolute', top: '20px', right: '20px'}}>
+        <button 
+          onClick={() => setUseModernUI(true)}
+          style={{
+            background: '#d32f2f',
+            color: 'white',
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+        >
+          Switch to Modern UI
+        </button>
+      </div>
+      
       <header>
         <div className="header-content">
           <div>
