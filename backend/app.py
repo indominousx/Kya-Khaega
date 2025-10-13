@@ -20,7 +20,7 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Initialize AI Service
-GEMINI_API_KEY = "AIzaSyAjE2GUy5_saZHT7N_RUzOkK8jfG67lGiA"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAjE2GUy5_saZHT7N_RUzOkK8jfG67lGiA")
 ai_service = FoodAIService(GEMINI_API_KEY)
 
 # Load and clean dataset
