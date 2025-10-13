@@ -86,6 +86,7 @@ function App() {
   const [availableAreas, setAvailableAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState('');
   const [useModernUI, setUseModernUI] = useState(true); // Toggle for new UI
+  const [aiInsights, setAiInsights] = useState(null); // Store AI explanation and insights
 
   // Get user location on app load
   useEffect(() => {
@@ -244,6 +245,7 @@ function App() {
     setIsLoading(true);
     setError('');
     setRecommendations(null);
+    setAiInsights(null); // Clear AI insights for regular searches
 
     try {
       const API_URL = config.api.baseUrl;
@@ -341,6 +343,83 @@ function App() {
     await makeRecommendationRequest(cuisines, effectiveFoodTypes, budgetRange, area);
   };
 
+  // Handler for AI-powered search
+  const handleAISearch = async (params) => {
+    const { query, userArea, userPreferences: userPrefs } = params;
+    
+    setIsLoading(true);
+    setError('');
+    setRecommendations(null);
+
+    try {
+      const API_URL = config.api.baseUrl;
+      
+      const requestData = {
+        query: query.trim(),
+        userArea: userArea || selectedArea,
+        userId: user?.id,
+        userPreferences: userPrefs || userPreferences
+      };
+
+      console.log('=== AI SEARCH REQUEST ===');
+      console.log('Query:', query);
+      console.log('User Area:', userArea || selectedArea);
+      console.log('Complete request data:', requestData);
+      
+      const response = await fetch(`${API_URL}/api/ai-recommend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI search failed. Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('AI Search Response:', data);
+      
+      // Set recommendations from AI response
+      if (data.recommendations) {
+        setRecommendations(data.recommendations);
+        
+        // Store AI insights for display
+        setAiInsights({
+          explanation: data.explanation,
+          understanding: data.ai_understanding,
+          confidence: data.confidence,
+          query: data.query,
+          isAiPowered: true
+        });
+        
+        // Log AI insights for debugging
+        console.log('AI Understanding:', data.ai_understanding);
+        console.log('AI Explanation:', data.explanation);
+        console.log('Confidence Score:', data.confidence);
+      } else {
+        setError('No recommendations found for your query. Please try rephrasing.');
+      }
+
+    } catch (err) {
+      setError(`AI search failed: ${err.message}. Please try using the regular search.`);
+      console.error('AI Search Error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Clear AI insights when using regular recommendations
+  const clearAiInsights = () => {
+    setAiInsights(null);
+  };
+
+  // Update regular recommendation handler to clear AI insights
+  useEffect(() => {
+    if (recommendations && !aiInsights?.isAiPowered) {
+      setAiInsights(null);
+    }
+  }, [recommendations]);
+
   if (authLoading) {
     return <div className="loading">Loading...</div>;
   }
@@ -392,6 +471,7 @@ function App() {
             <ModernUI 
               userPreferences={userPreferences}
               onGetRecommendations={handleModernUIRecommendations}
+              onAISearch={handleAISearch}
               isLoading={isLoading}
               user={user}
               selectedArea={selectedArea}
@@ -407,8 +487,35 @@ function App() {
               <div className="recommendations-container">
                 <div className="recommendations-header">
                   <h2>🍽️ Recommendations for You</h2>
-                  <p>Based on your preferences • {recommendations.length} suggestions</p>
+                  <p>
+                    {aiInsights?.isAiPowered ? (
+                      <>🤖 AI-powered results • {recommendations.length} suggestions</>
+                    ) : (
+                      <>Based on your preferences • {recommendations.length} suggestions</>
+                    )}
+                  </p>
                 </div>
+                
+                {/* AI Explanation */}
+                {aiInsights?.explanation && (
+                  <div className="ai-explanation">
+                    <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px'}}>
+                      <span style={{fontSize: '16px'}}>🤖</span>
+                      <span style={{fontWeight: '600'}}>AI Analysis:</span>
+                      {aiInsights?.confidence && (
+                        <span className="confidence-badge">
+                          {Math.round(aiInsights.confidence * 100)}% confident
+                        </span>
+                      )}
+                    </div>
+                    <p style={{margin: '0', lineHeight: '1.5'}}>{aiInsights.explanation}</p>
+                    {aiInsights?.query && (
+                      <div style={{marginTop: '10px', fontSize: '13px', opacity: '0.8'}}>
+                        💭 Your query: "{aiInsights.query}"
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="recommendations-list">
                   {recommendations.map((item, index) => (
                     <div key={index} className="recommendation-card">

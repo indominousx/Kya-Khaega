@@ -6,6 +6,7 @@ import os
 import json
 import random
 from supabase import create_client, Client
+from ai_service import FoodAIService
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -17,6 +18,10 @@ CORS(app, resources={
 SUPABASE_URL = "https://bxbiafbvprdmcayumxnx.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4YmlhZmJ2cHJkbWNheXVteG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNjQ1MzcsImV4cCI6MjA3NTc0MDUzN30.02_mypsf-AbNXMH0hUUylDTziMyVyUKQbORy1ZXC1KE"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Initialize AI Service
+GEMINI_API_KEY = "AIzaSyAjE2GUy5_saZHT7N_RUzOkK8jfG67lGiA"
+ai_service = FoodAIService(GEMINI_API_KEY)
 
 # Load and clean dataset
 def load_dataset():
@@ -407,6 +412,116 @@ def get_recommendations():
         
     except Exception as e:
         return jsonify({"error": f"Recommendation engine error: {str(e)}"}), 500
+
+@app.route('/api/ai-recommend', methods=['POST'])
+def get_ai_recommendations():
+    """AI-powered natural language food recommendation endpoint"""
+    if df.empty:
+        return jsonify({"error": "Restaurant data not available"}), 500
+    
+    try:
+        data = request.get_json()
+        user_query = data.get('query', '').strip()
+        userId = data.get('userId', '')
+        user_area = data.get('userArea', '')
+        
+        if not user_query:
+            return jsonify({"error": "Please provide a food query"}), 400
+        
+        print(f"AI Query: '{user_query}' from user: {userId} in area: {user_area}")
+        
+        # Get available options from dataset
+        available_cuisines = sorted(df['Cuisine'].dropna().unique().tolist()) if 'Cuisine' in df.columns else []
+        available_areas = sorted(df['Area'].dropna().unique().tolist()) if 'Area' in df.columns else []
+        
+        # Get user demographics for enhanced AI understanding
+        stored_demographics = get_user_demographics(userId)
+        print(f"User Demographics: {stored_demographics}")
+        
+        # Use AI to understand the query with demographics context
+        ai_understanding = ai_service.understand_food_query(
+            user_query, 
+            available_cuisines, 
+            available_areas,
+            stored_demographics
+        )
+        
+        print(f"Enhanced AI Understanding: {ai_understanding}")
+        
+        # If user provided area, prioritize it over AI detected areas
+        if user_area:
+            ai_understanding['areas'] = [user_area]
+        
+        # Apply AI-powered intelligent filtering with demographics
+        filtered_restaurants = ai_service.generate_smart_filters(
+            ai_understanding, 
+            df, 
+            stored_demographics
+        )
+        
+        print(f"AI + Demographics Filtered to {len(filtered_restaurants)} restaurants")
+        
+        # Rank recommendations using AI context and demographics
+        ranked_restaurants = ai_service.rank_recommendations_with_context(
+            filtered_restaurants, 
+            ai_understanding,
+            stored_demographics
+        )
+        
+        # Get AI-based recommendations (3 dishes)
+        ai_recommendations = get_five_different_restaurants(ranked_restaurants, 3)
+        
+        # Get demographic-based recommendations (2 dishes as requested)
+        demographic_recommendations = ai_service.get_demographic_recommendations(
+            df, 
+            stored_demographics, 
+            ai_understanding, 
+            count=2
+        )
+        
+        # Combine recommendations (3 AI + 2 demographic)
+        recommendations = ai_recommendations + demographic_recommendations
+        
+        print(f"Generated {len(ai_recommendations)} AI + {len(demographic_recommendations)} demographic recommendations")
+        
+        # Generate explanation with demographics context
+        explanation = ai_service.generate_explanation(ai_understanding, recommendations, stored_demographics)
+        
+        print(f"Generated {len(recommendations)} AI-powered recommendations")
+        
+        # Enhanced response with AI insights and demographics
+        response_data = {
+            'recommendations': recommendations,
+            'ai_recommendations': ai_recommendations,
+            'demographic_recommendations': demographic_recommendations,
+            'total_found': len(recommendations),
+            'ai_understanding': ai_understanding,
+            'explanation': explanation,
+            'query': user_query,
+            'confidence': ai_understanding.get('confidence', 0.5),
+            'filtering_stats': {
+                'total_restaurants': len(df),
+                'after_ai_filtering': len(filtered_restaurants),
+                'ai_recommendation_count': len(ai_recommendations),
+                'demographic_recommendation_count': len(demographic_recommendations),
+                'recommendation_method': 'ai_powered_with_demographics'
+            },
+            'user_demographics': {
+                'has_preferences': bool(stored_demographics),
+                'preferences_data': stored_demographics,
+                'used_fallback': ai_understanding.get('used_fallback', False),
+                'location': user_area
+            }
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"AI recommendation error: {str(e)}")
+        return jsonify({
+            "error": f"AI recommendation engine error: {str(e)}",
+            "fallback_message": "Please try rephrasing your request or use the regular search."
+        }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))

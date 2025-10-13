@@ -25,6 +25,7 @@ const POPULAR_AREAS = [
 const ModernUI = ({ 
   userPreferences, 
   onGetRecommendations, 
+  onAISearch,
   isLoading, 
   user, 
   selectedArea: propSelectedArea, 
@@ -36,6 +37,7 @@ const ModernUI = ({
   const [budgetRange, setBudgetRange] = useState([0, 1000]);
   const [userBudget, setUserBudget] = useState(null);
   const [selectedBudgetRange, setSelectedBudgetRange] = useState('');
+  const [isAISearch, setIsAISearch] = useState(false);
   
   // Use props instead of local state for controlled components
   const selectedArea = propSelectedArea || '';
@@ -136,6 +138,24 @@ const ModernUI = ({
     }
   };
 
+  const handleAISearch = () => {
+    if (!searchQuery.trim()) {
+      return;
+    }
+
+    setIsAISearch(true);
+    console.log('AI Search triggered with query:', searchQuery);
+    console.log('Current selected area:', selectedArea);
+
+    if (onAISearch) {
+      onAISearch({
+        query: searchQuery.trim(),
+        userArea: selectedArea,
+        userPreferences
+      });
+    }
+  };
+
 
 
   return (
@@ -151,16 +171,43 @@ const ModernUI = ({
         </p>
       </div>
 
-      {/* Search Bar */}
+      {/* AI-Powered Search Bar */}
       <div className="search-section">
         <div className="search-container">
-          <input
-            type="text"
-            placeholder="What are you in the mood for? (e.g., biryani, pasta, thai...)"
-            className="search-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div className="ai-search-wrapper">
+            <div className="search-input-container">
+              <input
+                type="text"
+                placeholder="Tell me what you're craving... (e.g., 'I want something spicy for dinner', 'healthy lunch options', 'romantic dinner in Koregaon Park')"
+                className="search-input ai-search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    handleAISearch();
+                  }
+                }}
+              />
+              <div className="search-buttons">
+                <button 
+                  className="ai-search-btn"
+                  onClick={handleAISearch}
+                  disabled={isLoading || !searchQuery.trim()}
+                >
+                  {isLoading ? '🤖 Thinking...' : '🤖 AI Search'}
+                </button>
+              </div>
+            </div>
+            <div className="ai-search-info">
+              <div className="ai-badge">
+                <span className="ai-icon">✨</span>
+                <span>AI-Powered</span>
+              </div>
+              <p className="ai-description">
+                Describe what you want in natural language and I'll find the perfect match!
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
