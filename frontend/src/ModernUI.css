@@ -539,6 +539,81 @@
   }
 }
 
+/* Food Type Selection Styles */
+.food-type-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 10px;
+}
+
+.food-type-card {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  padding: 25px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  backdrop-filter: blur(10px);
+}
+
+.food-type-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.food-type-card.selected {
+  border-color: #ff6b35;
+  background: rgba(255, 107, 53, 0.2);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+}
+
+.food-type-card.veg.selected {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.2);
+  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+}
+
+.food-type-card.non-veg.selected {
+  border-color: #F44336;
+  background: rgba(244, 67, 54, 0.2);
+  box-shadow: 0 8px 25px rgba(244, 67, 54, 0.3);
+}
+
+.food-type-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.food-type-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 5px;
+}
+
+.food-type-description {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+}
+
+.food-type-info {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.food-type-info p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  margin: 0;
+  font-style: italic;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .modern-container {
@@ -573,6 +648,22 @@
   .budget-range {
     grid-template-columns: 1fr 1fr;
   }
+  
+  .food-type-container {
+    gap: 15px;
+  }
+  
+  .food-type-card {
+    padding: 20px 15px;
+  }
+  
+  .food-type-icon {
+    font-size: 32px;
+  }
+  
+  .food-type-name {
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -586,5 +677,10 @@
   
   .budget-range {
     grid-template-columns: 1fr;
+  }
+  
+  .food-type-container {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }

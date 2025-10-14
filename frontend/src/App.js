@@ -472,6 +472,7 @@ function App() {
               userPreferences={userPreferences}
               onGetRecommendations={handleModernUIRecommendations}
               onAISearch={handleAISearch}
+              onFoodTypeChange={setSelectedFoodTypes}
               isLoading={isLoading}
               user={user}
               selectedArea={selectedArea}
