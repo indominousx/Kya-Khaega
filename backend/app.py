@@ -535,6 +535,121 @@ def get_ai_recommendations():
             "fallback_message": "Please try rephrasing your request or use the regular search."
         }), 500
 
+@app.route('/api/dataset-analysis', methods=['GET'])
+def get_dataset_analysis():
+    """
+    Provide comprehensive dataset analysis data for visualization
+    """
+    try:
+        # Load the dataset
+        df = load_dataset()
+        
+        if df is None or df.empty:
+            return jsonify({"error": "Dataset not found or empty"}), 404
+        
+        # Basic statistics
+        total_items = len(df)
+        total_restaurants = df['Restaurant_Name'].nunique() if 'Restaurant_Name' in df.columns else 0
+        total_areas = df['Area'].nunique() if 'Area' in df.columns else 0
+        total_cuisines = df['Cuisine'].nunique() if 'Cuisine' in df.columns else 0
+        
+        # Price analysis
+        avg_price = df['Price'].mean() if 'Price' in df.columns else 0
+        min_price = df['Price'].min() if 'Price' in df.columns else 0
+        max_price = df['Price'].max() if 'Price' in df.columns else 0
+        
+        # Rating analysis
+        avg_rating = df['Dining_Rating'].mean() if 'Dining_Rating' in df.columns else 0
+        
+        # Cuisine distribution
+        cuisine_dist = df['Cuisine'].value_counts().to_dict() if 'Cuisine' in df.columns else {}
+        
+        # Area distribution
+        area_dist = df['Area'].value_counts().to_dict() if 'Area' in df.columns else {}
+        
+        # Food type distribution
+        food_type_dist = df['Food Type'].value_counts().to_dict() if 'Food Type' in df.columns else {}
+        
+        # Price range distribution
+        price_ranges = {
+            '0-200': 0,
+            '200-400': 0,
+            '400-600': 0,
+            '600-800': 0,
+            '800+': 0
+        }
+        
+        if 'Price' in df.columns:
+            for price in df['Price']:
+                if price < 200:
+                    price_ranges['0-200'] += 1
+                elif price < 400:
+                    price_ranges['200-400'] += 1
+                elif price < 600:
+                    price_ranges['400-600'] += 1
+                elif price < 800:
+                    price_ranges['600-800'] += 1
+                else:
+                    price_ranges['800+'] += 1
+        
+        # Rating distribution
+        rating_ranges = {
+            '3.0-3.5': 0,
+            '3.5-4.0': 0,
+            '4.0-4.5': 0,
+            '4.5-5.0': 0
+        }
+        
+        if 'Dining_Rating' in df.columns:
+            for rating in df['Dining_Rating'].dropna():
+                if rating < 3.5:
+                    rating_ranges['3.0-3.5'] += 1
+                elif rating < 4.0:
+                    rating_ranges['3.5-4.0'] += 1
+                elif rating < 4.5:
+                    rating_ranges['4.0-4.5'] += 1
+                else:
+                    rating_ranges['4.5-5.0'] += 1
+        
+        # Top restaurants by votes
+        top_restaurants = []
+        if 'Restaurant_Name' in df.columns and 'Votes' in df.columns:
+            restaurant_votes = df.groupby('Restaurant_Name')['Votes'].sum().sort_values(ascending=False).head(10)
+            top_restaurants = [{"name": name, "votes": int(votes)} for name, votes in restaurant_votes.items()]
+        
+        # Compile response
+        analysis_data = {
+            "overview": {
+                "total_items": total_items,
+                "total_restaurants": total_restaurants,
+                "total_areas": total_areas,
+                "total_cuisines": total_cuisines,
+                "avg_price": round(avg_price, 2),
+                "min_price": round(min_price, 2),
+                "max_price": round(max_price, 2),
+                "avg_rating": round(avg_rating, 2)
+            },
+            "distributions": {
+                "cuisine": cuisine_dist,
+                "area": area_dist,
+                "food_type": food_type_dist,
+                "price_ranges": price_ranges,
+                "rating_ranges": rating_ranges
+            },
+            "top_restaurants": top_restaurants,
+            "insights": {
+                "most_popular_cuisine": max(cuisine_dist, key=cuisine_dist.get) if cuisine_dist else "N/A",
+                "most_popular_area": max(area_dist, key=area_dist.get) if area_dist else "N/A",
+                "veg_percentage": round((food_type_dist.get('Veg', 0) / total_items) * 100, 1) if total_items > 0 else 0
+            }
+        }
+        
+        return jsonify(analysis_data)
+        
+    except Exception as e:
+        print(f"Dataset analysis error: {str(e)}")
+        return jsonify({"error": f"Failed to analyze dataset: {str(e)}"}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

@@ -26,7 +26,6 @@ const ModernUI = ({
   userPreferences, 
   onGetRecommendations, 
   onAISearch,
-  onFoodTypeChange,
   isLoading, 
   user, 
   selectedArea: propSelectedArea, 
@@ -63,32 +62,6 @@ const ModernUI = ({
   }, [userPreferences]);
 
   // Note: Cuisine preferences are now handled by parent component
-
-  const handleFoodTypeToggle = (foodType) => {
-    const newSelectedFoodTypes = selectedFoodTypes.includes(foodType)
-      ? selectedFoodTypes.filter(ft => ft !== foodType)
-      : [...selectedFoodTypes, foodType];
-    
-    console.log('Food type toggled:', foodType, 'New food types:', newSelectedFoodTypes);
-    
-    // Update the parent state
-    if (onFoodTypeChange) {
-      onFoodTypeChange(newSelectedFoodTypes);
-    }
-    
-    // Immediately trigger recommendations when food type is selected/deselected
-    if (onGetRecommendations) {
-      onGetRecommendations({
-        searchQuery,
-        cuisines: selectedCuisines,
-        budgetRange,
-        selectedArea,
-        userBudget,
-        selectedBudgetRange,
-        foodTypes: newSelectedFoodTypes
-      });
-    }
-  };
 
   const handleCuisineToggle = (cuisineName) => {
     const newSelectedCuisines = selectedCuisines.includes(cuisineName) 
@@ -235,32 +208,6 @@ const ModernUI = ({
               </p>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Food Type Selection */}
-      <div className="section">
-        <h2 className="section-title">Food Preference</h2>
-        <div className="food-type-container">
-          <div 
-            className={`food-type-card veg ${selectedFoodTypes.includes('Veg') ? 'selected' : ''}`}
-            onClick={() => handleFoodTypeToggle('Veg')}
-          >
-            <div className="food-type-icon">🥗</div>
-            <div className="food-type-name">Vegetarian</div>
-            <div className="food-type-description">Pure veg options</div>
-          </div>
-          <div 
-            className={`food-type-card non-veg ${selectedFoodTypes.includes('Non-Veg') ? 'selected' : ''}`}
-            onClick={() => handleFoodTypeToggle('Non-Veg')}
-          >
-            <div className="food-type-icon">🍖</div>
-            <div className="food-type-name">Non-Vegetarian</div>
-            <div className="food-type-description">Meat, chicken & seafood</div>
-          </div>
-        </div>
-        <div className="food-type-info">
-          <p>💡 Select none for all options, or choose your preference</p>
         </div>
       </div>
 

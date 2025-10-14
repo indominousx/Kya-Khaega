@@ -7,6 +7,7 @@ import 'rc-slider/assets/index.css';
 import './App.css';
 import LoginPage from './LoginPage';
 import ModernUI from './ModernUI';
+import DataAnalysis from './DataAnalysis';
 import { supabase } from './supabaseClient';
 import config from './config';
 
@@ -87,6 +88,7 @@ function App() {
   const [selectedArea, setSelectedArea] = useState('');
   const [useModernUI, setUseModernUI] = useState(true); // Toggle for new UI
   const [aiInsights, setAiInsights] = useState(null); // Store AI explanation and insights
+  const [showDataAnalysis, setShowDataAnalysis] = useState(false); // Toggle for data analysis page
 
   // Get user location on app load
   useEffect(() => {
@@ -428,6 +430,11 @@ function App() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
+  // Show Data Analysis page if requested
+  if (showDataAnalysis) {
+    return <DataAnalysis onBack={() => setShowDataAnalysis(false)} />;
+  }
+
   // Render Modern UI
   if (useModernUI) {
     return (
@@ -435,30 +442,30 @@ function App() {
         {/* Toggle Button */}
         <div style={{position: 'absolute', top: '20px', right: '20px', zIndex: 1000}}>
           <button 
-            onClick={() => setUseModernUI(false)}
+            onClick={() => setShowDataAnalysis(true)}
             style={{
-              background: 'rgba(255,255,255,0.2)',
-              color: 'white',
-              border: '1px solid rgba(255,255,255,0.3)',
-              padding: '8px 16px',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              backdropFilter: 'blur(10px)'
-            }}
-          >
-            Switch to Classic UI
-          </button>
-          <button 
-            onClick={handleLogout}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
+              background: 'rgba(138, 43, 226, 0.8)',
               color: 'white',
               border: '1px solid rgba(255,255,255,0.3)',
               padding: '8px 16px',
               borderRadius: '20px',
               cursor: 'pointer',
               backdropFilter: 'blur(10px)',
-              marginLeft: '10px'
+              marginRight: '10px'
+            }}
+          >
+            📊 Data Analysis
+          </button>
+          <button 
+            onClick={handleLogout}
+            style={{
+              background: 'rgba(0, 0, 0, 0.2)',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.3)',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              backdropFilter: 'blur(10px)',
             }}
           >
             Logout
@@ -588,6 +595,20 @@ function App() {
     <div className="container">
       {/* Toggle Button */}
       <div style={{position: 'absolute', top: '20px', right: '20px'}}>
+        <button 
+          onClick={() => setShowDataAnalysis(true)}
+          style={{
+            background: '#8A2BE2',
+            color: 'white',
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            marginRight: '10px'
+          }}
+        >
+          📊 Data Analysis
+        </button>
         <button 
           onClick={() => setUseModernUI(true)}
           style={{
