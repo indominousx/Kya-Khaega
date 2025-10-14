@@ -38,7 +38,7 @@ header {
 }
 
 header h1 {
-  color: #d32f2f;
+  color: #ff3131;
   margin: 0;
   font-weight: 700;
 }
@@ -113,17 +113,17 @@ button {
   font-size: 1.2rem;
   font-weight: bold;
   color: #fff;
-  background-image: linear-gradient(to right, #e53935, #d32f2f);
+  background: linear-gradient(135deg, #ff3131 0%, #ffad0e 100%);
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(211, 47, 47, 0.3);
+  box-shadow: 0 4px 10px rgba(255, 49, 49, 0.3);
 }
 
 button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(211, 47, 47, 0.4);
+  box-shadow: 0 6px 15px rgba(255, 49, 49, 0.4);
 }
 
 button:disabled {
@@ -138,11 +138,11 @@ button:disabled {
 }
 
 .error-message, .no-results {
-  color: #c62828;
+  color: #ff3131;
   font-weight: bold;
   text-align: center;
   padding: 15px;
-  background-color: #ffcdd2;
+  background-color: #ffe6e6;
   border-radius: 8px;
 }
 
@@ -228,12 +228,12 @@ li:hover {
 }
 
 .rc-slider-track {
-    background-color: #d32f2f;
+    background: linear-gradient(135deg, #ff3131 0%, #ffad0e 100%);
     height: 6px;
 }
 
 .rc-slider-handle {
-    border: 2px solid #d32f2f;
+    border: 2px solid #ff3131;
     background-color: #fff;
     height: 20px;
     width: 20px;
@@ -242,7 +242,7 @@ li:hover {
 }
 
 .rc-slider-handle:focus, .rc-slider-handle:active {
-    box-shadow: 0 0 0 5px rgba(211, 47, 47, 0.2);
+    box-shadow: 0 0 0 5px rgba(255, 49, 49, 0.2);
 }
 
 .rc-slider-rail {
@@ -258,7 +258,7 @@ li:hover {
 }
 
 .location-error {
-    color: #d32f2f;
+    color: #ff3131;
     font-size: 0.9em;
     margin: 8px 0 0 0;
     font-weight: 500;
@@ -284,8 +284,8 @@ li:hover {
 
 .area-selector:focus {
     outline: none;
-    border-color: #d32f2f;
-    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+    border-color: #ff3131;
+    box-shadow: 0 0 0 3px rgba(255, 49, 49, 0.1);
 }
 
 .area-selector:hover {
@@ -369,7 +369,7 @@ li:hover {
 .modern-layout {
     height: 100vh;
     overflow: hidden;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff3131 0%, #ffad0e 100%);
 }
 
 .main-content {
@@ -380,7 +380,7 @@ li:hover {
 }
 
 .left-panel {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff3131 0%, #ffad0e 100%);
     overflow-y: auto;
     padding: 0;
 }
@@ -456,14 +456,14 @@ li:hover {
 }
 
 .price-badge {
-    background: linear-gradient(135deg, #4CAF50, #45a049);
+    background: linear-gradient(135deg, #ff3131, #ffad0e);
     color: white;
     padding: 8px 16px;
     border-radius: 25px;
     font-weight: 700;
     font-size: 1.1em;
     min-width: fit-content;
-    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 4px 15px rgba(255, 49, 49, 0.3);
 }
 
 .restaurant-info {
@@ -514,13 +514,13 @@ li:hover {
 }
 
 .cuisine-tag {
-    background: rgba(102, 126, 234, 0.1);
-    color: #667eea;
+    background: rgba(255, 49, 49, 0.1);
+    color: #ff3131;
     padding: 6px 14px;
     border-radius: 20px;
     font-size: 0.9em;
     font-weight: 500;
-    border: 1px solid rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(255, 49, 49, 0.2);
 }
 
 /* No Recommendations Placeholder */
@@ -596,11 +596,11 @@ li:hover {
 }
 
 .error-message {
-    background: rgba(244, 67, 54, 0.1);
-    color: #d32f2f;
+    background: rgba(255, 49, 49, 0.1);
+    color: #ff3131;
     padding: 20px 30px;
     border-radius: 15px;
-    border: 1px solid rgba(244, 67, 54, 0.2);
+    border: 1px solid rgba(255, 49, 49, 0.2);
     display: flex;
     align-items: center;
     gap: 10px;

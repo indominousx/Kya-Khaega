@@ -16,7 +16,7 @@
 
 .app-icon {
   font-size: 48px;
-  background: #ff6b35;
+  background: linear-gradient(135deg, #ff3131 0%, #ffad0e 100%);
   width: 80px;
   height: 80px;
   border-radius: 20px;
@@ -24,7 +24,7 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
-  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+  box-shadow: 0 8px 25px rgba(255, 49, 49, 0.3);
 }
 
 .app-title {
@@ -427,7 +427,7 @@
 }
 
 .ai-search-btn {
-  background: linear-gradient(135deg, #6c63ff, #4c51bf);
+  background: linear-gradient(135deg, #ff3131, #ffad0e);
   color: white;
   border: none;
   padding: 12px 20px;
@@ -446,7 +446,7 @@
 
 .ai-search-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(108, 99, 255, 0.3);
+  box-shadow: 0 8px 25px rgba(255, 49, 49, 0.3);
 }
 
 .ai-search-btn:disabled {
@@ -566,9 +566,9 @@
 }
 
 .food-type-card.selected {
-  border-color: #ff6b35;
-  background: rgba(255, 107, 53, 0.2);
-  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+  border-color: #ff3131;
+  background: rgba(255, 49, 49, 0.2);
+  box-shadow: 0 8px 25px rgba(255, 49, 49, 0.3);
 }
 
 .food-type-card.veg.selected {
