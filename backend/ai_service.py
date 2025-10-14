@@ -43,12 +43,15 @@ class FoodAIService:
         Extract and return ONLY a JSON object with these fields:
         {{
             "cuisines": [list of matching cuisines from available list],
-            "food_types": [list from: "Veg", "Non-Veg"],
-            "dietary_preferences": [list from: "Spicy", "Mild", "Sweet", "Healthy", "Fast Food", "Rich", "Light"],
-            "meal_type": "string from: Breakfast, Lunch, Dinner, Snack, Dessert",
-            "price_preference": "string from: Budget, Mid-range, Premium",
+            "food_types": [list from: "Veg", "Non-Veg", "Vegan", "Jain"],
+            "dietary_preferences": [list from: "Spicy", "Mild", "Sweet", "Healthy", "Fast Food", "Rich", "Light", "Low-Oil", "Grilled", "Fried"],
+            "meal_type": "string from: Breakfast, Lunch, Dinner, Snack, Dessert, Brunch",
+            "price_preference": "string from: Budget, Mid-range, Premium, Ultra-Budget",
             "price_range": {{"min": number, "max": number}},
             "areas": [list of matching areas from available list],
+            "delivery_time": "string from: Express, Standard, Flexible",
+            "restaurant_type": [list from: "Fine-Dining", "Casual", "Quick-Bites", "Cafe", "Street-Food", "Cloud-Kitchen"],
+            "cuisine_intensity": "string from: Authentic, Fusion, Mild-Fusion"
             "specific_dishes": [list of specific food items mentioned],
             "mood_context": "string describing the eating context/mood",
             "urgency": "string from: Immediate, Normal, Flexible",
@@ -56,13 +59,36 @@ class FoodAIService:
             "confidence": number between 0-1 indicating how well you understood the query
         }}
         
-        Enhanced Rules for Price Analysis:
-        - Budget: Under ₹200 per person (phrases like "cheap", "budget", "under 200", "affordable")
-        - Mid-range: ₹200-500 per person (phrases like "reasonable", "moderate", "decent price")  
-        - Premium: Above ₹500 per person (phrases like "expensive", "fine dining", "premium", "splurge")
-        - Extract specific price mentions: "under 300", "around 400", "less than 250"
-        - If user has daily budget from demographics, consider it for price_range
-        - Set price_range based on budget constraint or user demographics
+        Enhanced Rules for Advanced Filtering:
+        
+        FOOD TYPE DETECTION (Very Important):
+        - "Veg"/"Vegetarian": vegetarian, veg, pure veg, no meat, no chicken, no fish
+        - "Non-Veg": non-veg, meat, chicken, mutton, fish, seafood, egg
+        - "Vegan": vegan, no dairy, plant-based, no milk products
+        - "Jain": jain food, no onion, no garlic, jain-friendly
+        - If user says "only veg" or "strictly vegetarian" → ["Veg"]
+        - If user says "non-veg" or mentions meat → ["Non-Veg"] 
+        - If unclear or no preference → ["Veg", "Non-Veg"]
+        
+        PRICE ANALYSIS:
+        - Ultra-Budget: Under ₹100 per person ("very cheap", "under 100", "street food price")
+        - Budget: ₹100-200 per person ("cheap", "budget", "affordable", "student budget")
+        - Mid-range: ₹200-500 per person ("reasonable", "moderate", "decent price")  
+        - Premium: Above ₹500 per person ("expensive", "fine dining", "premium", "splurge")
+        - Extract specific amounts: "under 300", "around 400", "less than 250"
+        
+        RESTAURANT TYPE DETECTION:
+        - "Fine-Dining": fine dining, fancy, upscale, formal, date night, anniversary
+        - "Casual": casual, family restaurant, regular dining
+        - "Quick-Bites": quick, fast, takeaway, grab and go, quick bite
+        - "Cafe": cafe, coffee shop, bakery, dessert place
+        - "Street-Food": street food, roadside, local vendors, chaat
+        - "Cloud-Kitchen": delivery only, cloud kitchen, online only
+        
+        DELIVERY TIME:
+        - "Express": urgent, quick delivery, fast, ASAP, hungry now
+        - "Standard": normal delivery, regular time
+        - "Flexible": no rush, can wait, planning ahead
         
         Additional Rules:
         - Prioritize explicit price mentions in query over demographics
@@ -104,7 +130,7 @@ class FoodAIService:
         # Ensure all required fields exist with defaults
         validated_response = {
             "cuisines": [],
-            "food_types": ["Veg", "Non-Veg"],  # Default to both
+            "food_types": ["Veg", "Non-Veg"],  # Default to both unless specifically mentioned
             "dietary_preferences": [],
             "meal_type": "",
             "price_preference": "Mid-range",
@@ -114,7 +140,10 @@ class FoodAIService:
             "mood_context": "",
             "urgency": "Normal",
             "group_size": "Solo",
-            "confidence": 0.5
+            "confidence": 0.5,
+            "delivery_time": "Standard",
+            "restaurant_type": [],
+            "cuisine_intensity": "Authentic"
         }
         
         # Update with AI response, validating each field
@@ -141,14 +170,24 @@ class FoodAIService:
                             break
                 validated_response["areas"] = validated_areas
             
-            # Validate food types
+            # Validate food types with enhanced options
             if "food_types" in response and isinstance(response["food_types"], list):
                 valid_food_types = []
+                allowed_food_types = ["Veg", "Non-Veg", "Vegan", "Jain"]
                 for ft in response["food_types"]:
-                    if ft in ["Veg", "Non-Veg"]:
+                    if ft in allowed_food_types:
                         valid_food_types.append(ft)
                 if valid_food_types:
                     validated_response["food_types"] = valid_food_types
+            
+            # Validate restaurant types
+            if "restaurant_type" in response and isinstance(response["restaurant_type"], list):
+                valid_restaurant_types = []
+                allowed_types = ["Fine-Dining", "Casual", "Quick-Bites", "Cafe", "Street-Food", "Cloud-Kitchen"]
+                for rt in response["restaurant_type"]:
+                    if rt in allowed_types:
+                        valid_restaurant_types.append(rt)
+                validated_response["restaurant_type"] = valid_restaurant_types
             
             # Validate price_range
             if "price_range" in response and isinstance(response["price_range"], dict):
@@ -164,7 +203,8 @@ class FoodAIService:
             
             # Copy other fields if they exist and are not None
             for field in ["dietary_preferences", "meal_type", "price_preference", 
-                         "specific_dishes", "mood_context", "urgency", "group_size", "confidence"]:
+                         "specific_dishes", "mood_context", "urgency", "group_size", "confidence",
+                         "delivery_time", "cuisine_intensity"]:
                 if field in response and response[field] is not None:
                     validated_response[field] = response[field]
         
@@ -184,7 +224,10 @@ class FoodAIService:
             "mood_context": "general food search",
             "urgency": "Normal",
             "group_size": "Solo",
-            "confidence": 0.1
+            "confidence": 0.1,
+            "delivery_time": "Standard",
+            "restaurant_type": [],
+            "cuisine_intensity": "Authentic"
         }
     
     def generate_smart_filters(self, ai_understanding: Dict, df: pd.DataFrame, 
@@ -213,18 +256,50 @@ class FoodAIService:
             cuisine_filter = filtered_df['Cuisine'].isin(cuisines_to_filter)
             filtered_df = filtered_df[cuisine_filter]
         
-        # Apply food type filters
-        if ai_understanding.get("food_types") and len(ai_understanding["food_types"]) < 2:
-            # Only filter if user specified one type specifically
-            food_type = ai_understanding["food_types"][0]
-            food_type_filter = filtered_df['Food Type'].str.contains(food_type, case=False, na=False)
-            filtered_df = filtered_df[food_type_filter]
-        elif user_demographics and user_demographics.get("food_type") and not ai_understanding.get("food_types"):
-            # Use demographics food type if not specified in query
+        # Enhanced food type filtering with stricter logic
+        food_types_to_apply = []
+        
+        # Prioritize AI understanding
+        if ai_understanding.get("food_types"):
+            ai_food_types = ai_understanding["food_types"]
+            # If user specified specific types (not default both)
+            if len(ai_food_types) < 4:  # Less than all 4 types means specific preference
+                food_types_to_apply = ai_food_types
+        elif user_demographics and user_demographics.get("food_type"):
+            # Use demographics as fallback
             demo_food_type = user_demographics["food_type"]
-            if demo_food_type in ["Veg", "Non-Veg"]:
-                food_type_filter = filtered_df['Food Type'].str.contains(demo_food_type, case=False, na=False)
-                filtered_df = filtered_df[food_type_filter]
+            if demo_food_type in ["Veg", "Non-Veg", "Vegan", "Jain"]:
+                food_types_to_apply = [demo_food_type]
+        
+        # Apply food type filters
+        if food_types_to_apply:
+            food_type_conditions = []
+            for food_type in food_types_to_apply:
+                if food_type == "Vegan":
+                    # Vegan: must be veg AND not contain dairy indicators
+                    vegan_condition = (
+                        filtered_df['Food Type'].str.contains('Veg', case=False, na=False) &
+                        ~filtered_df['Item_Name'].str.contains('cheese|paneer|butter|ghee|milk|cream|curd', case=False, na=False)
+                    )
+                    food_type_conditions.append(vegan_condition)
+                elif food_type == "Jain":
+                    # Jain: must be veg AND not contain onion/garlic indicators
+                    jain_condition = (
+                        filtered_df['Food Type'].str.contains('Veg', case=False, na=False) &
+                        ~filtered_df['Item_Name'].str.contains('onion|garlic|potato|ginger', case=False, na=False)
+                    )
+                    food_type_conditions.append(jain_condition)
+                else:
+                    # Regular Veg/Non-Veg filtering
+                    condition = filtered_df['Food Type'].str.contains(food_type, case=False, na=False)
+                    food_type_conditions.append(condition)
+            
+            if food_type_conditions:
+                # Combine conditions with OR logic
+                combined_food_filter = food_type_conditions[0]
+                for condition in food_type_conditions[1:]:
+                    combined_food_filter = combined_food_filter | condition
+                filtered_df = filtered_df[combined_food_filter]
         
         # Apply area filters
         if ai_understanding.get("areas"):
@@ -264,16 +339,24 @@ class FoodAIService:
                 max_price = price_range["max"]
                 filtered_df = filtered_df[(filtered_df['Price'] >= min_price) & (filtered_df['Price'] <= max_price)]
             
-            # Fallback to price preference categories
+            # Fallback to enhanced price preference categories
             elif ai_understanding.get("price_preference"):
                 price_pref = ai_understanding["price_preference"]
-                if price_pref == "Budget":
-                    max_budget = 200
+                if price_pref == "Ultra-Budget":
+                    max_budget = 100
                     # Use user's daily budget if lower
                     if user_demographics and user_demographics.get("daily_budget"):
                         user_budget = float(user_demographics["daily_budget"])
                         max_budget = min(max_budget, user_budget)
                     filtered_df = filtered_df[filtered_df['Price'] <= max_budget]
+                elif price_pref == "Budget":
+                    min_price = 100
+                    max_budget = 200
+                    # Use user's daily budget if lower
+                    if user_demographics and user_demographics.get("daily_budget"):
+                        user_budget = float(user_demographics["daily_budget"])
+                        max_budget = min(max_budget, user_budget)
+                    filtered_df = filtered_df[(filtered_df['Price'] >= min_price) & (filtered_df['Price'] <= max_budget)]
                 elif price_pref == "Mid-range":
                     min_price = 200
                     max_price = 500
@@ -301,6 +384,84 @@ class FoodAIService:
                 # Use 80% of daily budget as max spending per meal
                 max_meal_budget = user_budget * 0.8
                 filtered_df = filtered_df[filtered_df['Price'] <= max_meal_budget]
+        
+        # Apply dietary preference filters
+        if ai_understanding.get("dietary_preferences"):
+            dietary_prefs = ai_understanding["dietary_preferences"]
+            dietary_conditions = []
+            
+            for pref in dietary_prefs:
+                if pref == "Spicy":
+                    spicy_condition = filtered_df['Item_Name'].str.contains(
+                        'spicy|hot|chili|pepper|masala|tandoori', case=False, na=False
+                    )
+                    dietary_conditions.append(spicy_condition)
+                elif pref == "Mild":
+                    mild_condition = ~filtered_df['Item_Name'].str.contains(
+                        'spicy|hot|chili|pepper', case=False, na=False
+                    )
+                    dietary_conditions.append(mild_condition)
+                elif pref == "Sweet":
+                    sweet_condition = filtered_df['Item_Name'].str.contains(
+                        'sweet|dessert|ice cream|cake|laddu|gulab|kheer|halwa', case=False, na=False
+                    )
+                    dietary_conditions.append(sweet_condition)
+                elif pref == "Healthy":
+                    healthy_condition = filtered_df['Item_Name'].str.contains(
+                        'salad|grilled|steamed|boiled|soup|fruit|juice|smoothie', case=False, na=False
+                    )
+                    dietary_conditions.append(healthy_condition)
+                elif pref == "Fast Food":
+                    fast_food_condition = filtered_df['Item_Name'].str.contains(
+                        'burger|pizza|sandwich|wrap|roll|fries|nugget', case=False, na=False
+                    )
+                    dietary_conditions.append(fast_food_condition)
+                elif pref == "Grilled":
+                    grilled_condition = filtered_df['Item_Name'].str.contains(
+                        'grilled|barbecue|bbq|tikka|kebab', case=False, na=False
+                    )
+                    dietary_conditions.append(grilled_condition)
+                elif pref == "Fried":
+                    fried_condition = filtered_df['Item_Name'].str.contains(
+                        'fried|crispy|pakora|samosa|cutlet|vada', case=False, na=False
+                    )
+                    dietary_conditions.append(fried_condition)
+            
+            if dietary_conditions:
+                # Combine dietary conditions with OR logic
+                combined_dietary_filter = dietary_conditions[0]
+                for condition in dietary_conditions[1:]:
+                    combined_dietary_filter = combined_dietary_filter | condition
+                filtered_df = filtered_df[combined_dietary_filter]
+        
+        # Apply restaurant type filters (if we have restaurant data)
+        if ai_understanding.get("restaurant_type") and 'Restaurant_Name' in filtered_df.columns:
+            restaurant_types = ai_understanding["restaurant_type"]
+            restaurant_conditions = []
+            
+            for rest_type in restaurant_types:
+                if rest_type == "Quick-Bites":
+                    quick_condition = filtered_df['Item_Name'].str.contains(
+                        'roll|wrap|sandwich|burger|pizza slice|quick|fast', case=False, na=False
+                    )
+                    restaurant_conditions.append(quick_condition)
+                elif rest_type == "Street-Food":
+                    street_condition = filtered_df['Item_Name'].str.contains(
+                        'chaat|bhel|pani puri|vada pav|samosa|pakora|dosa|idli', case=False, na=False
+                    )
+                    restaurant_conditions.append(street_condition)
+                elif rest_type == "Cafe":
+                    cafe_condition = filtered_df['Item_Name'].str.contains(
+                        'coffee|tea|cake|pastry|sandwich|salad|smoothie|juice', case=False, na=False
+                    )
+                    restaurant_conditions.append(cafe_condition)
+            
+            if restaurant_conditions:
+                # Combine restaurant type conditions with OR logic
+                combined_restaurant_filter = restaurant_conditions[0]
+                for condition in restaurant_conditions[1:]:
+                    combined_restaurant_filter = combined_restaurant_filter | condition
+                filtered_df = filtered_df[combined_restaurant_filter]
         
         return filtered_df
     
@@ -367,17 +528,77 @@ class FoodAIService:
                     'ice cream|cake|sweet|kulfi|gulab|rasmalai|kheer', case=False, na=False)
                 scored_df.loc[dessert_items, 'ai_score'] += 1.0 * confidence
         
-        # Dietary preferences scoring
+        # Enhanced dietary preferences scoring
         if ai_understanding.get('dietary_preferences'):
             for pref in ai_understanding['dietary_preferences']:
-                if pref.lower() == 'spicy':
+                pref_lower = pref.lower()
+                if pref_lower == 'spicy':
                     spicy_items = scored_df['Item_Name'].str.contains(
-                        'spicy|hot|chili|schezwan|andhra|kerala', case=False, na=False)
-                    scored_df.loc[spicy_items, 'ai_score'] += 0.5 * confidence
-                elif pref.lower() == 'healthy':
+                        'spicy|hot|chili|schezwan|andhra|kerala|masala|tandoori', case=False, na=False)
+                    scored_df.loc[spicy_items, 'ai_score'] += 0.8 * confidence
+                elif pref_lower == 'healthy':
                     healthy_items = scored_df['Item_Name'].str.contains(
-                        'salad|soup|grilled|steamed|boiled', case=False, na=False)
-                    scored_df.loc[healthy_items, 'ai_score'] += 0.5 * confidence
+                        'salad|soup|grilled|steamed|boiled|fruit|juice|smoothie', case=False, na=False)
+                    scored_df.loc[healthy_items, 'ai_score'] += 0.8 * confidence
+                elif pref_lower == 'sweet':
+                    sweet_items = scored_df['Item_Name'].str.contains(
+                        'sweet|dessert|ice cream|cake|laddu|gulab|kheer|halwa', case=False, na=False)
+                    scored_df.loc[sweet_items, 'ai_score'] += 0.8 * confidence
+                elif pref_lower == 'fast food':
+                    fast_items = scored_df['Item_Name'].str.contains(
+                        'burger|pizza|sandwich|wrap|roll|fries|nugget', case=False, na=False)
+                    scored_df.loc[fast_items, 'ai_score'] += 0.7 * confidence
+                elif pref_lower == 'grilled':
+                    grilled_items = scored_df['Item_Name'].str.contains(
+                        'grilled|barbecue|bbq|tikka|kebab', case=False, na=False)
+                    scored_df.loc[grilled_items, 'ai_score'] += 0.7 * confidence
+                elif pref_lower == 'fried':
+                    fried_items = scored_df['Item_Name'].str.contains(
+                        'fried|crispy|pakora|samosa|cutlet|vada', case=False, na=False)
+                    scored_df.loc[fried_items, 'ai_score'] += 0.6 * confidence
+                elif pref_lower == 'mild':
+                    # Boost items that don't contain spicy indicators
+                    mild_items = ~scored_df['Item_Name'].str.contains(
+                        'spicy|hot|chili|pepper', case=False, na=False)
+                    scored_df.loc[mild_items, 'ai_score'] += 0.5 * confidence
+        
+        # Food type preference scoring
+        if ai_understanding.get('food_types') and len(ai_understanding['food_types']) < 4:
+            for food_type in ai_understanding['food_types']:
+                if food_type == 'Veg':
+                    veg_items = scored_df['Food Type'].str.contains('Veg', case=False, na=False)
+                    scored_df.loc[veg_items, 'ai_score'] += 0.5 * confidence
+                elif food_type == 'Non-Veg':
+                    nonveg_items = scored_df['Food Type'].str.contains('Non-Veg', case=False, na=False)
+                    scored_df.loc[nonveg_items, 'ai_score'] += 0.5 * confidence
+                elif food_type == 'Vegan':
+                    vegan_items = (
+                        scored_df['Food Type'].str.contains('Veg', case=False, na=False) &
+                        ~scored_df['Item_Name'].str.contains('cheese|paneer|butter|ghee|milk|cream|curd', case=False, na=False)
+                    )
+                    scored_df.loc[vegan_items, 'ai_score'] += 0.7 * confidence
+                elif food_type == 'Jain':
+                    jain_items = (
+                        scored_df['Food Type'].str.contains('Veg', case=False, na=False) &
+                        ~scored_df['Item_Name'].str.contains('onion|garlic|potato|ginger', case=False, na=False)
+                    )
+                    scored_df.loc[jain_items, 'ai_score'] += 0.7 * confidence
+        
+        # Restaurant type scoring
+        if ai_understanding.get('restaurant_type'):
+            for rest_type in ai_understanding['restaurant_type']:
+                if rest_type == 'Quick-Bites':
+                    quick_items = scored_df['Item_Name'].str.contains(
+                        'roll|wrap|sandwich|burger|pizza slice|quick|fast', case=False, na=False)
+                    scored_df.loc[quick_items, 'ai_score'] += 0.6 * confidence
+                elif rest_type == 'Street-Food':
+                    street_items = scored_df['Item_Name'].str.contains(
+                        'chaat|bhel|pani puri|vada pav|samosa|pakora|dosa|idli', case=False, na=False)
+                    scored_df.loc[street_items, 'ai_score'] += 0.6 * confidence
+                elif rest_type == 'Cafe':
+                    cafe_items = scored_df['Item_Name'].str.contains(
+                        'coffee|tea|cake|pastry|sandwich|salad|smoothie|juice', case=False, na=False)
+                    scored_df.loc[cafe_items, 'ai_score'] += 0.6 * confidence
         
         # Calculate final score
         scored_df['final_score'] = (
